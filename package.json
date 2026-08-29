@@ -1,0 +1,26 @@
+{
+  "name": "pedia-notes-hugo-publisher",
+  "version": "1.0.0",
+  "description": "Obsidian plugin to publish notes to a Hugo site on GitHub",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": ["obsidian", "hugo", "publish", "github"],
+  "author": "Dr. Rubanbalaji",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.21.4",
+    "obsidian": "latest",
+    "tslib": "^2.6.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@octokit/core": "^6.1.2",
+    "js-base64": "^3.7.7"
+  }
+}

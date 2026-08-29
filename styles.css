@@ -1,0 +1,238 @@
+/* ── PediaNotes Hugo Publisher Styles ─────────────────────────────── */
+
+.pedia-hugo-modal {
+	padding: 18px;
+	max-width: 720px;
+}
+
+.pedia-modal-desc {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	margin-bottom: 16px;
+}
+
+/* ── Status Bar ────────────────────────────────────────────────────── */
+.pedia-status-bar {
+	cursor: pointer;
+	padding: 0 4px;
+	color: var(--text-muted);
+	transition: color 0.15s ease;
+}
+.pedia-status-bar:hover {
+	color: var(--text-accent);
+}
+
+/* ── Publication Center Stats ──────────────────────────────────────── */
+.pedia-stats-bar {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+	gap: 10px;
+	margin: 14px 0 20px;
+}
+
+.pedia-stat-card {
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 12px;
+	text-align: center;
+	font-weight: 600;
+	font-size: 0.9em;
+	color: var(--text-normal);
+}
+
+/* ── File Tree / Changes Container ─────────────────────────────────── */
+.pedia-changes-container {
+	max-height: 380px;
+	overflow-y: auto;
+	margin-bottom: 20px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 12px;
+	background-color: var(--background-primary);
+}
+
+.pedia-change-sec {
+	margin-bottom: 16px;
+}
+
+.pedia-change-sec h3 {
+	margin: 8px 0 6px;
+	font-size: 1em;
+	color: var(--text-normal);
+}
+
+.pedia-file-tree {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+}
+
+.pedia-tree-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	padding: 4px 6px;
+	border-radius: 4px;
+}
+.pedia-tree-item:hover {
+	background-color: var(--background-secondary);
+}
+
+.pedia-tree-item-static {
+	padding: 4px 6px;
+	color: var(--text-muted);
+}
+
+.pedia-delete-text {
+	color: var(--text-error);
+	text-decoration: line-through;
+}
+
+.pedia-success-banner {
+	text-align: center;
+	padding: 24px;
+	color: var(--text-success);
+	font-weight: 500;
+}
+
+/* ── Action Bar & Progress Bar ─────────────────────────────────────── */
+.pedia-actions-bar {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	align-items: flex-end;
+}
+
+.pedia-btn-publish {
+	padding: 8px 20px;
+	font-size: 0.95em;
+	font-weight: 600;
+}
+
+.pedia-progress-bar {
+	width: 100%;
+	height: 6px;
+	background-color: var(--background-secondary);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.pedia-progress-fill {
+	height: 100%;
+	width: 0%;
+	background-color: var(--interactive-accent);
+	transition: width 0.2s ease;
+}
+
+/* ── Diagnostic Modal ──────────────────────────────────────────────── */
+.pedia-diagnostic-section {
+	margin-bottom: 20px;
+}
+
+.pedia-diagnostic-card {
+	border-radius: 8px;
+	padding: 12px;
+	margin-bottom: 10px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.pedia-diagnostic-card.error {
+	background-color: rgba(255, 0, 0, 0.05);
+	border-color: var(--color-red);
+}
+
+.pedia-diagnostic-card.warning {
+	background-color: rgba(255, 165, 0, 0.05);
+	border-color: var(--color-orange);
+}
+
+.pedia-card-rule {
+	font-weight: bold;
+	font-size: 0.85em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.pedia-card-msg {
+	margin: 6px 0;
+	color: var(--text-normal);
+}
+
+.pedia-file-link {
+	color: var(--text-accent);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+/* ── Navigation Ordering Modal ─────────────────────────────────────── */
+.pedia-order-list-container {
+	max-height: 400px;
+	overflow-y: auto;
+	margin: 14px 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 8px;
+}
+
+.pedia-order-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	border-radius: 4px;
+	background-color: var(--background-secondary);
+	margin-bottom: 6px;
+}
+
+.pedia-order-rank {
+	color: var(--text-muted);
+	font-weight: bold;
+	width: 30px;
+}
+
+.pedia-order-title {
+	flex-grow: 1;
+	font-weight: 500;
+}
+
+.pedia-order-buttons {
+	display: flex;
+	gap: 4px;
+}
+
+.pedia-btn-mini {
+	padding: 2px 8px;
+	font-size: 0.8em;
+	cursor: pointer;
+}
+
+/* ── Commit History & Rollback ─────────────────────────────────────── */
+.pedia-history-sec {
+	margin-top: 24px;
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 14px;
+}
+
+.pedia-commit-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 0.85em;
+}
+
+.pedia-commit-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 8px;
+	background-color: var(--background-secondary);
+	border-radius: 6px;
+}
+
+.pedia-muted {
+	color: var(--text-muted);
+}

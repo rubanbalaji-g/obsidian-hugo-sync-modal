@@ -1,0 +1,10 @@
+{
+  "id": "pedia-notes-hugo-publisher",
+  "name": "PediaNotes Hugo Publisher",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Publish Obsidian notes to a Hugo site on GitHub with frontmatter-driven publishing, theme control, and live validation.",
+  "author": "Dr. Rubanbalaji",
+  "authorUrl": "https://github.com/rubanbalaji-g",
+  "isDesktopOnly": true
+}

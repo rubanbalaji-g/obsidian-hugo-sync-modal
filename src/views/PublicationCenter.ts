@@ -4,6 +4,55 @@ import { Publisher, PublishPlan } from "src/publisher/Publisher";
 import { GitHubConnection, CommitEntry } from "src/github/GitHubConnection";
 import { DiagnosticModal } from "src/views/DiagnosticModal";
 
+interface TreeFileItem {
+	name: string;
+	repoPath: string;
+}
+
+interface TreeFolderNode {
+	name: string;
+	folders: Map<string, TreeFolderNode>;
+	files: TreeFileItem[];
+}
+
+function buildPathTree(repoPaths: string[]): TreeFolderNode {
+	const root: TreeFolderNode = { name: "root", folders: new Map(), files: [] };
+	for (const fullPath of repoPaths) {
+		let clean = fullPath;
+		if (clean.startsWith("content/")) clean = clean.substring("content/".length);
+		else if (clean.startsWith("sources/")) clean = clean.substring("sources/".length);
+		else if (clean.startsWith("static/img/")) clean = clean.substring("static/img/".length);
+
+		const parts = clean.split("/");
+		if (parts.length === 1) {
+			root.files.push({ name: parts[0], repoPath: fullPath });
+		} else {
+			let current = root;
+			for (let i = 0; i < parts.length - 1; i++) {
+				const folderName = parts[i];
+				if (!current.folders.has(folderName)) {
+					current.folders.set(folderName, {
+						name: folderName,
+						folders: new Map(),
+						files: [],
+					});
+				}
+				current = current.folders.get(folderName)!;
+			}
+			const fileName = parts[parts.length - 1];
+			current.files.push({ name: fileName, repoPath: fullPath });
+		}
+	}
+	return root;
+}
+
+function getAllFilePaths(node: TreeFolderNode): string[] {
+	const paths: string[] = [];
+	for (const f of node.files) paths.push(f.repoPath);
+	for (const sub of node.folders.values()) paths.push(...getAllFilePaths(sub));
+	return paths;
+}
+
 export class PublicationCenterModal extends Modal {
 	private publisher: Publisher;
 	private settings: HugoPublisherSettings;
@@ -32,7 +81,7 @@ export class PublicationCenterModal extends Modal {
 		contentEl.addClass("pedia-hugo-modal");
 		contentEl.addClass("publication-center");
 
-		contentEl.createEl("h2", { text: "🚀 PediaNotes Publication Center" });
+		contentEl.createEl("h2", { text: "🚀 Publication Center" });
 
 		const loadingEl = contentEl.createEl("p", {
 			text: "Analyzing vault and comparing with GitHub...",
@@ -72,166 +121,120 @@ export class PublicationCenterModal extends Modal {
 			return;
 		}
 
-		// Pre-select ONLY the unsynced notes (new and modified) and deletions
-		this.selectedNotes = new Set(this.plan.notesToUpload.map((n) => n.repoPath));
+		// Pre-select: Changed Notes + Unsynced Notes + Deleted Notes
+		this.selectedNotes = new Set([
+			...this.plan.changedNotes.map((n) => n.repoPath),
+			...this.plan.newNotes.map((n) => n.repoPath),
+		]);
 		this.selectedDeletions = new Set(this.plan.filesToDelete);
 
-		// Render dashboard
+		// Render Tree Dashboard
 		this.renderDashboard(contentEl);
 	}
 
 	private renderDashboard(contentEl: HTMLElement) {
 		contentEl.empty();
-		contentEl.createEl("h2", { text: "🚀 PediaNotes Publication Center" });
 
-		// Stats Bar
-		const statsBar = contentEl.createEl("div", { cls: "pedia-stats-bar" });
-		const publishedTotal = this.publisher.getPublishedFiles().length;
+		// Modal Title
+		const titleRow = contentEl.createEl("div", { cls: "pedia-modal-title-row" });
+		titleRow.createEl("h2", { text: "📤 Publication Center" });
 
-		statsBar.createEl("div", {
-			cls: "pedia-stat-card",
-			text: `${publishedTotal} Published Notes`,
-		});
-		statsBar.createEl("div", {
-			cls: "pedia-stat-card",
-			text: `${this.plan?.notesToUpload.length || 0} to Upload`,
-		});
-		statsBar.createEl("div", {
-			cls: "pedia-stat-card",
-			text: `${this.plan?.filesToDelete.length || 0} to Delete`,
-		});
-		statsBar.createEl("div", {
-			cls: "pedia-stat-card",
-			text: `${this.plan?.unchangedCount || 0} Synced`,
-		});
+		// Tree View Container
+		const treeContainer = contentEl.createEl("div", { cls: "pedia-pub-tree-container" });
 
-		// Selection Controls Bar
-		const controlsBar = contentEl.createEl("div", { cls: "pedia-selection-controls" });
-		controlsBar.style.cssText = "display: flex; gap: 8px; margin: 12px 0; align-items: center;";
-
-		const selectUnsyncedBtn = controlsBar.createEl("button", {
-			text: "⚡ Select Only Yet to Sync",
-			cls: "mod-cta",
-		});
-		selectUnsyncedBtn.onclick = () => {
-			this.selectedNotes = new Set(this.plan?.notesToUpload.map((n) => n.repoPath) || []);
-			this.renderDashboard(contentEl);
-		};
-
-		const selectAllBtn = controlsBar.createEl("button", { text: "Select All" });
-		selectAllBtn.onclick = () => {
-			const all = new Set<string>();
-			this.plan?.notesToUpload.forEach((n) => all.add(n.repoPath));
-			this.plan?.syncedNotes?.forEach((p) => all.add(p));
-			this.selectedNotes = all;
-			this.renderDashboard(contentEl);
-		};
-
-		const deselectAllBtn = controlsBar.createEl("button", { text: "Deselect All" });
-		deselectAllBtn.onclick = () => {
-			this.selectedNotes.clear();
-			this.renderDashboard(contentEl);
-		};
-
-		// Changes Summary Container
-		const changesContainer = contentEl.createEl("div", { cls: "pedia-changes-container" });
-
-		// Upload Section (Unsynced Notes)
-		if (this.plan && this.plan.notesToUpload.length > 0) {
-			const upSec = changesContainer.createEl("div", { cls: "pedia-change-sec" });
-			upSec.createEl("h3", { text: `📤 Notes to Upload — New or Changed (${this.plan.notesToUpload.length})` });
-
-			const list = upSec.createEl("div", { cls: "pedia-file-tree" });
-			for (const note of this.plan.notesToUpload) {
-				const item = list.createEl("label", { cls: "pedia-tree-item" });
-				const cb = item.createEl("input", { type: "checkbox" });
-				cb.checked = this.selectedNotes.has(note.repoPath);
-				cb.onchange = () => {
-					if (cb.checked) this.selectedNotes.add(note.repoPath);
-					else this.selectedNotes.delete(note.repoPath);
-					this.updatePublishButton(contentEl);
-				};
-				item.createEl("span", { text: note.repoPath });
-			}
+		// 1. CHANGED NOTES (Amber / Orange)
+		const changedPaths = this.plan?.changedNotes.map((n) => n.repoPath) || [];
+		if (changedPaths.length > 0) {
+			this.renderCategoryTree(
+				treeContainer,
+				"Changed Notes",
+				"pedia-cat-changed",
+				"✏️",
+				changedPaths,
+				this.selectedNotes,
+				true
+			);
 		}
 
-		// Images Section
-		if (this.plan && this.plan.imagesToUpload.length > 0) {
-			const imgSec = changesContainer.createEl("div", { cls: "pedia-change-sec" });
-			imgSec.createEl("h3", { text: `🖼️ Images to Upload (${this.plan.imagesToUpload.length})` });
-			const list = imgSec.createEl("div", { cls: "pedia-file-tree" });
-			for (const img of this.plan.imagesToUpload) {
-				const item = list.createEl("div", { cls: "pedia-tree-item-static" });
-				item.createEl("span", { text: img.repoPath });
-			}
+		// 2. UNSYNCED NOTES (Cyan / Blue)
+		const newPaths = this.plan?.newNotes.map((n) => n.repoPath) || [];
+		if (newPaths.length > 0) {
+			this.renderCategoryTree(
+				treeContainer,
+				"Unsynced Notes",
+				"pedia-cat-new",
+				"➕",
+				newPaths,
+				this.selectedNotes,
+				true
+			);
 		}
 
-		// Delete Section
-		if (this.plan && this.plan.filesToDelete.length > 0) {
-			const delSec = changesContainer.createEl("div", { cls: "pedia-change-sec" });
-			delSec.createEl("h3", { text: `🗑️ Remote Files to Remove (${this.plan.filesToDelete.length})` });
-
-			const list = delSec.createEl("div", { cls: "pedia-file-tree" });
-			for (const path of this.plan.filesToDelete) {
-				const item = list.createEl("label", { cls: "pedia-tree-item" });
-				const cb = item.createEl("input", { type: "checkbox" });
-				cb.checked = this.selectedDeletions.has(path);
-				cb.onchange = () => {
-					if (cb.checked) this.selectedDeletions.add(path);
-					else this.selectedDeletions.delete(path);
-					this.updatePublishButton(contentEl);
-				};
-				item.createEl("span", { text: path, cls: "pedia-delete-text" });
-			}
+		// 3. DELETED NOTES (Red)
+		const deletedPaths = this.plan?.filesToDelete || [];
+		if (deletedPaths.length > 0) {
+			this.renderCategoryTree(
+				treeContainer,
+				"Deleted Notes",
+				"pedia-cat-deleted",
+				"🗑️",
+				deletedPaths,
+				this.selectedDeletions,
+				true
+			);
 		}
 
-		// Synced Notes (Up to date) Section
-		if (this.plan && this.plan.syncedNotes && this.plan.syncedNotes.length > 0) {
-			const syncedSec = changesContainer.createEl("div", { cls: "pedia-change-sec" });
-			const details = syncedSec.createEl("details");
-			const summary = details.createEl("summary");
-			summary.style.cssText = "cursor: pointer; font-weight: 600; padding: 4px 0; color: var(--text-muted);";
-			summary.setText(`✅ Synced Notes — Up to date (${this.plan.syncedNotes.length}) — Click to view`);
-
-			const list = details.createEl("div", { cls: "pedia-file-tree" });
-			list.style.cssText = "margin-top: 8px; opacity: 0.85;";
-			for (const path of this.plan.syncedNotes) {
-				const item = list.createEl("label", { cls: "pedia-tree-item" });
-				const cb = item.createEl("input", { type: "checkbox" });
-				cb.checked = this.selectedNotes.has(path);
-				cb.onchange = () => {
-					if (cb.checked) this.selectedNotes.add(path);
-					else this.selectedNotes.delete(path);
-					this.updatePublishButton(contentEl);
-				};
-				item.createEl("span", { text: path });
-			}
+		// 4. PUBLISHED / SYNCED NOTES (Emerald Green)
+		const syncedPaths = this.plan?.syncedNotes || [];
+		if (syncedPaths.length > 0) {
+			this.renderCategoryTree(
+				treeContainer,
+				"Published Notes",
+				"pedia-cat-synced",
+				"✅",
+				syncedPaths,
+				this.selectedNotes,
+				false // collapsed by default
+			);
 		}
 
+		// If everything is completely in sync with zero pending changes
 		if (
-			this.plan &&
-			this.plan.notesToUpload.length === 0 &&
-			this.plan.imagesToUpload.length === 0 &&
-			this.plan.filesToDelete.length === 0
+			changedPaths.length === 0 &&
+			newPaths.length === 0 &&
+			deletedPaths.length === 0 &&
+			(this.plan?.imagesToUpload.length || 0) === 0
 		) {
-			changesContainer.createEl("p", {
-				text: "✨ Everything is up to date with GitHub! No pending changes.",
-				cls: "pedia-success-banner",
-			});
+			const banner = treeContainer.createEl("div", { cls: "pedia-success-banner" });
+			banner.setText("✨ Everything is up to date with GitHub! All notes are synced.");
 		}
 
-		// Action Bar
+		// Images to Upload Section (if any)
+		if (this.plan && this.plan.imagesToUpload.length > 0) {
+			const imgSection = treeContainer.createEl("div", { cls: "pedia-tree-category pedia-cat-images" });
+			const imgHeader = imgSection.createEl("div", { cls: "pedia-cat-header" });
+			imgHeader.createEl("span", { text: `🖼️ Images to Upload (${this.plan.imagesToUpload.length})`, cls: "pedia-cat-title" });
+			const imgList = imgSection.createEl("div", { cls: "pedia-cat-body" });
+			for (const img of this.plan.imagesToUpload) {
+				const row = imgList.createEl("div", { cls: "pedia-tree-file-row static-item" });
+				row.createEl("span", { text: "🖼️", cls: "pedia-file-icon" });
+				row.createEl("span", { text: img.repoPath, cls: "pedia-file-name" });
+			}
+		}
+
+		// Bottom Action Bar
 		const actionsContainer = contentEl.createEl("div", { cls: "pedia-actions-bar" });
+		const totalSelected =
+			this.selectedNotes.size +
+			(this.plan?.imagesToUpload.length || 0) +
+			this.selectedDeletions.size;
+
 		const publishBtn = actionsContainer.createEl("button", {
-			text: "Publish Changes to GitHub",
+			text: `Publish Changes to GitHub (${totalSelected})`,
 			cls: "mod-cta pedia-btn-publish",
 		});
 		publishBtn.id = "pedia-publish-btn";
-		publishBtn.disabled =
-			!this.plan ||
-			(this.selectedNotes.size === 0 &&
-				this.plan.imagesToUpload.length === 0 &&
-				this.selectedDeletions.size === 0);
+		publishBtn.disabled = totalSelected === 0;
 
 		publishBtn.onclick = async () => {
 			if (this.isPublishing) return;
@@ -243,11 +246,33 @@ export class PublicationCenterModal extends Modal {
 			const progressFill = progressBar.createEl("div", { cls: "pedia-progress-fill" });
 
 			try {
+				const allUploads = [
+					...(this.plan?.changedNotes || []),
+					...(this.plan?.newNotes || []),
+				];
+
+				// Also include any selected notes from the synced section if manually checked
+				const syncedCompiled = await Promise.all(
+					(this.plan?.syncedNotes || [])
+						.filter((p) => this.selectedNotes.has(p))
+						.map(async (repoPath) => {
+							const relVaultPath = repoPath.replace(/^content\//, "");
+							const file = this.app.vault.getAbstractFileByPath(relVaultPath);
+							if (file instanceof TFile) {
+								return await this.publisher["compiler"].compile(file, new Map());
+							}
+							return null;
+						})
+				);
+
+				const extraNotes = syncedCompiled.filter((n): n is NonNullable<typeof n> => n !== null);
+
 				const filteredPlan: PublishPlan = {
 					...this.plan!,
-					notesToUpload: this.plan!.notesToUpload.filter((n) =>
-						this.selectedNotes.has(n.repoPath)
-					),
+					notesToUpload: [
+						...allUploads.filter((n) => this.selectedNotes.has(n.repoPath)),
+						...extraNotes,
+					],
 					filesToDelete: this.plan!.filesToDelete.filter((p) =>
 						this.selectedDeletions.has(p)
 					),
@@ -271,7 +296,7 @@ export class PublicationCenterModal extends Modal {
 			} catch (err) {
 				new Notice(`❌ Publish failed: ${err}`);
 				publishBtn.disabled = false;
-				publishBtn.setText("Publish Changes to GitHub");
+				publishBtn.setText(`Publish Changes to GitHub (${totalSelected})`);
 				progressBar.remove();
 				this.isPublishing = false;
 			}
@@ -295,14 +320,203 @@ export class PublicationCenterModal extends Modal {
 		}
 	}
 
-	private updatePublishButton(contentEl: HTMLElement) {
-		const btn = contentEl.querySelector("#pedia-publish-btn") as HTMLButtonElement | null;
-		if (btn) {
-			btn.disabled =
-				!this.plan ||
-				(this.selectedNotes.size === 0 &&
-					(this.plan.imagesToUpload.length || 0) === 0 &&
-					this.selectedDeletions.size === 0);
+	private renderCategoryTree(
+		parentEl: HTMLElement,
+		title: string,
+		colorClass: string,
+		icon: string,
+		paths: string[],
+		selectedSet: Set<string>,
+		defaultOpen = true
+	) {
+		const tree = buildPathTree(paths);
+		const allPaths = getAllFilePaths(tree);
+
+		const categoryEl = parentEl.createEl("div", { cls: `pedia-tree-category ${colorClass}` });
+
+		// Header Row: [Caret] [Checkbox] [Title] [Count]
+		const headerEl = categoryEl.createEl("div", { cls: "pedia-cat-header" });
+
+		const caret = headerEl.createEl("span", {
+			text: defaultOpen ? "▾" : "▸",
+			cls: "pedia-tree-caret",
+		});
+
+		const categoryCb = headerEl.createEl("input", { type: "checkbox", cls: "pedia-tree-cb" });
+		const updateCategoryCbState = () => {
+			const checkedCount = allPaths.filter((p) => selectedSet.has(p)).length;
+			if (checkedCount === 0) {
+				categoryCb.checked = false;
+				categoryCb.indeterminate = false;
+			} else if (checkedCount === allPaths.length) {
+				categoryCb.checked = true;
+				categoryCb.indeterminate = false;
+			} else {
+				categoryCb.checked = false;
+				categoryCb.indeterminate = true;
+			}
+		};
+		updateCategoryCbState();
+
+		categoryCb.onchange = (e) => {
+			e.stopPropagation();
+			const isChecked = categoryCb.checked;
+			for (const p of allPaths) {
+				if (isChecked) selectedSet.add(p);
+				else selectedSet.delete(p);
+			}
+			this.renderDashboard(this.contentEl);
+		};
+
+		const titleEl = headerEl.createEl("span", {
+			text: `${title} (${paths.length})`,
+			cls: "pedia-cat-title",
+		});
+
+		const bodyEl = categoryEl.createEl("div", { cls: "pedia-cat-body" });
+		bodyEl.style.display = defaultOpen ? "block" : "none";
+
+		// Click header to collapse/expand
+		headerEl.onclick = (e) => {
+			if (e.target === categoryCb) return;
+			const isOpen = bodyEl.style.display === "block";
+			bodyEl.style.display = isOpen ? "none" : "block";
+			caret.setText(isOpen ? "▸" : "▾");
+		};
+
+		// Render Root Files First (e.g. About.md, index.md)
+		tree.files.sort((a, b) => a.name.localeCompare(b.name));
+		for (const file of tree.files) {
+			this.renderFileRow(bodyEl, file, selectedSet, () => {
+				updateCategoryCbState();
+				this.updatePublishCount();
+			});
+		}
+
+		// Render Folders Sorted Alphabetically
+		const folderNames = Array.from(tree.folders.keys()).sort((a, b) => a.localeCompare(b));
+		for (const fName of folderNames) {
+			const subNode = tree.folders.get(fName)!;
+			this.renderFolderNode(bodyEl, subNode, selectedSet, defaultOpen, () => {
+				updateCategoryCbState();
+				this.updatePublishCount();
+			});
+		}
+	}
+
+	private renderFolderNode(
+		parentEl: HTMLElement,
+		node: TreeFolderNode,
+		selectedSet: Set<string>,
+		defaultOpen: boolean,
+		onItemChanged: () => void
+	) {
+		const folderPaths = getAllFilePaths(node);
+		const folderEl = parentEl.createEl("div", { cls: "pedia-tree-folder" });
+
+		// Folder Header: [Caret] [📁 Folder Icon] [Checkbox] [Folder Name] [Count]
+		const header = folderEl.createEl("div", { cls: "pedia-folder-header" });
+
+		const caret = header.createEl("span", {
+			text: defaultOpen ? "▾" : "▸",
+			cls: "pedia-tree-caret",
+		});
+
+		const folderIcon = header.createEl("span", { text: "📁", cls: "pedia-folder-icon" });
+
+		const cb = header.createEl("input", { type: "checkbox", cls: "pedia-tree-cb" });
+		const updateFolderCb = () => {
+			const checkedCount = folderPaths.filter((p) => selectedSet.has(p)).length;
+			if (checkedCount === 0) {
+				cb.checked = false;
+				cb.indeterminate = false;
+			} else if (checkedCount === folderPaths.length) {
+				cb.checked = true;
+				cb.indeterminate = false;
+			} else {
+				cb.checked = false;
+				cb.indeterminate = true;
+			}
+		};
+		updateFolderCb();
+
+		cb.onchange = (e) => {
+			e.stopPropagation();
+			const isChecked = cb.checked;
+			for (const p of folderPaths) {
+				if (isChecked) selectedSet.add(p);
+				else selectedSet.delete(p);
+			}
+			onItemChanged();
+			// Re-render folder children checkboxes
+			childrenEl.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((c) => {
+				c.checked = isChecked;
+				c.indeterminate = false;
+			});
+		};
+
+		header.createEl("span", { text: node.name, cls: "pedia-folder-name" });
+		header.createEl("span", { text: `(${folderPaths.length})`, cls: "pedia-folder-count" });
+
+		const childrenEl = folderEl.createEl("div", { cls: "pedia-folder-children" });
+		childrenEl.style.display = defaultOpen ? "block" : "none";
+
+		header.onclick = (e) => {
+			if (e.target === cb) return;
+			const isOpen = childrenEl.style.display === "block";
+			childrenEl.style.display = isOpen ? "none" : "block";
+			caret.setText(isOpen ? "▸" : "▾");
+		};
+
+		// Render Files inside this folder
+		node.files.sort((a, b) => a.name.localeCompare(b.name));
+		for (const file of node.files) {
+			this.renderFileRow(childrenEl, file, selectedSet, () => {
+				updateFolderCb();
+				onItemChanged();
+			});
+		}
+
+		// Render Nested Subfolders (if any)
+		const subNames = Array.from(node.folders.keys()).sort((a, b) => a.localeCompare(b));
+		for (const subName of subNames) {
+			this.renderFolderNode(childrenEl, node.folders.get(subName)!, selectedSet, defaultOpen, () => {
+				updateFolderCb();
+				onItemChanged();
+			});
+		}
+	}
+
+	private renderFileRow(
+		parentEl: HTMLElement,
+		file: TreeFileItem,
+		selectedSet: Set<string>,
+		onChanged: () => void
+	) {
+		const row = parentEl.createEl("div", { cls: "pedia-tree-file-row" });
+
+		const cb = row.createEl("input", { type: "checkbox", cls: "pedia-tree-cb" });
+		cb.checked = selectedSet.has(file.repoPath);
+
+		cb.onchange = () => {
+			if (cb.checked) selectedSet.add(file.repoPath);
+			else selectedSet.delete(file.repoPath);
+			onChanged();
+		};
+
+		row.createEl("span", { text: "📄", cls: "pedia-file-icon" });
+		row.createEl("span", { text: file.name, cls: "pedia-file-name" });
+	}
+
+	private updatePublishCount() {
+		const btn = this.contentEl.querySelector("#pedia-publish-btn") as HTMLButtonElement | null;
+		if (btn && this.plan) {
+			const totalSelected =
+				this.selectedNotes.size +
+				(this.plan.imagesToUpload.length || 0) +
+				this.selectedDeletions.size;
+			btn.setText(`Publish Changes to GitHub (${totalSelected})`);
+			btn.disabled = totalSelected === 0;
 		}
 	}
 }

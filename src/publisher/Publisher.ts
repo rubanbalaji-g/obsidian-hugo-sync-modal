@@ -18,6 +18,8 @@ export interface PublishSummary {
 
 export interface PublishPlan {
 	validation: ValidationResult;
+	changedNotes: CompiledNote[];
+	newNotes: CompiledNote[];
 	notesToUpload: CompiledNote[];
 	imagesToUpload: Array<{ repoPath: string; file: TFile }>;
 	filesToDelete: string[];
@@ -110,6 +112,8 @@ export class Publisher {
 		// 4. Diff notes
 		const diff = await diffFiles(localContentMap, remoteTree.filter((r) => r.path.endsWith(".md")));
 
+		const changedNotes = compiledNotes.filter((n) => diff.changed.includes(n.repoPath));
+		const newNotes = compiledNotes.filter((n) => diff.newFiles.includes(n.repoPath));
 		const notesToUpload = compiledNotes.filter((n) => diff.toUpload.includes(n.repoPath));
 		const remoteImagePaths = new Set(remoteTree.filter((r) => !r.path.endsWith(".md")).map((r) => r.path));
 
@@ -122,6 +126,8 @@ export class Publisher {
 
 		return {
 			validation,
+			changedNotes,
+			newNotes,
 			notesToUpload,
 			imagesToUpload,
 			filesToDelete: diff.toDelete,

@@ -7,7 +7,11 @@ export interface RemoteFile {
 
 /** Result of diffing local vs remote */
 export interface DiffResult {
-	/** Files to upload (new or changed) */
+	/** Files modified (existed on GitHub with different SHA) */
+	changed: string[];
+	/** Files new (do not exist on GitHub yet) */
+	newFiles: string[];
+	/** All files to upload (changed + newFiles) */
 	toUpload: string[];
 	/** Files to delete from GitHub (removed from vault or unpublished) */
 	toDelete: string[];
@@ -49,19 +53,21 @@ export async function diffFiles(
 		remoteMap.set(rf.path, rf);
 	}
 
-	const toUpload: string[] = [];
+	const changed: string[] = [];
+	const newFiles: string[] = [];
 	const unchanged: string[] = [];
 
 	// Check each local file against remote
 	for (const [path, content] of localFiles.entries()) {
 		const remote = remoteMap.get(path);
 		if (!remote) {
-			// New file
-			toUpload.push(path);
+			// New file (never pushed to GitHub)
+			newFiles.push(path);
 		} else {
 			const localSha = await computeLocalSha(content);
 			if (localSha !== remote.sha) {
-				toUpload.push(path);
+				// Changed file (existed on GitHub but modified locally)
+				changed.push(path);
 			} else {
 				unchanged.push(path);
 			}
@@ -76,5 +82,6 @@ export async function diffFiles(
 		}
 	}
 
-	return { toUpload, toDelete, unchanged };
+	const toUpload = [...changed, ...newFiles];
+	return { changed, newFiles, toUpload, toDelete, unchanged };
 }

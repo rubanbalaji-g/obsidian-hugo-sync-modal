@@ -1,116 +1,192 @@
 /* ── PediaNotes Hugo Publisher Styles ─────────────────────────────── */
 
 .pedia-hugo-modal {
-	padding: 18px;
-	max-width: 720px;
+	padding: 20px;
+	max-width: 760px;
 }
 
-.pedia-modal-desc {
-	color: var(--text-muted);
-	font-size: 0.9em;
-	margin-bottom: 16px;
-}
-
-/* ── Status Bar ────────────────────────────────────────────────────── */
-.pedia-status-bar {
-	cursor: pointer;
-	padding: 0 4px;
-	color: var(--text-muted);
-	transition: color 0.15s ease;
-}
-.pedia-status-bar:hover {
-	color: var(--text-accent);
-}
-
-/* ── Publication Center Stats ──────────────────────────────────────── */
-.pedia-stats-bar {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-	gap: 10px;
-	margin: 14px 0 20px;
-}
-
-.pedia-stat-card {
-	background-color: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	padding: 12px;
-	text-align: center;
-	font-weight: 600;
-	font-size: 0.9em;
-	color: var(--text-normal);
-}
-
-/* ── File Tree / Changes Container ─────────────────────────────────── */
-.pedia-changes-container {
-	max-height: 380px;
-	overflow-y: auto;
-	margin-bottom: 20px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	padding: 12px;
-	background-color: var(--background-primary);
-}
-
-.pedia-change-sec {
-	margin-bottom: 16px;
-}
-
-.pedia-change-sec h3 {
-	margin: 8px 0 6px;
-	font-size: 1em;
-	color: var(--text-normal);
-}
-
-.pedia-file-tree {
+.pedia-modal-title-row {
 	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	font-family: var(--font-monospace);
-	font-size: 0.85em;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+.pedia-modal-title-row h2 {
+	margin: 0;
+	font-size: 1.35em;
+	font-weight: 700;
 }
 
-.pedia-tree-item {
+/* ── Publication Center Tree Container ─────────────────────────────── */
+.pedia-pub-tree-container {
+	max-height: 520px;
+	min-height: 280px;
+	overflow-y: auto;
+	margin: 12px 0 18px;
+	padding: 10px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	scrollbar-width: thin;
+}
+
+/* Category Sections */
+.pedia-tree-category {
+	margin-bottom: 12px;
+	border-radius: 6px;
+}
+
+.pedia-cat-header {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	padding: 6px 8px;
+	border-radius: 6px;
 	cursor: pointer;
-	padding: 4px 6px;
-	border-radius: 4px;
+	user-select: none;
+	transition: background-color 0.15s ease;
 }
-.pedia-tree-item:hover {
+.pedia-cat-header:hover {
 	background-color: var(--background-secondary);
 }
 
-.pedia-tree-item-static {
-	padding: 4px 6px;
-	color: var(--text-muted);
+.pedia-cat-title {
+	font-weight: 700;
+	font-size: 1.05em;
+	letter-spacing: -0.01em;
 }
 
-.pedia-delete-text {
-	color: var(--text-error);
-	text-decoration: line-through;
+/* Distinct Colors for the 4 Categories */
+.pedia-cat-changed .pedia-cat-title {
+	color: #f59e0b; /* Amber / Orange */
+}
+.pedia-cat-new .pedia-cat-title {
+	color: #38bdf8; /* Sky Blue */
+}
+.pedia-cat-deleted .pedia-cat-title {
+	color: #ef4444; /* Rose Red */
+}
+.pedia-cat-synced .pedia-cat-title {
+	color: #34d399; /* Emerald Green */
+}
+.pedia-cat-images .pedia-cat-title {
+	color: var(--text-accent);
+}
+
+.pedia-cat-body {
+	margin: 4px 0 10px 10px;
+}
+
+/* Tree Carets & Checkboxes */
+.pedia-tree-caret {
+	width: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.85em;
+	color: var(--text-muted);
+	cursor: pointer;
+	user-select: none;
+}
+
+.pedia-tree-cb {
+	cursor: pointer;
+	margin: 0 4px 0 0;
+}
+
+/* Folders */
+.pedia-tree-folder {
+	margin: 3px 0 3px 14px;
+}
+
+.pedia-folder-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	border-radius: 5px;
+	cursor: pointer;
+	user-select: none;
+	font-size: 0.92em;
+	font-weight: 600;
+	color: var(--text-normal);
+	transition: background-color 0.15s ease;
+}
+.pedia-folder-header:hover {
+	background-color: var(--background-secondary);
+}
+
+.pedia-folder-icon {
+	font-size: 1.05em;
+	opacity: 0.9;
+}
+
+.pedia-folder-name {
+	flex: 1;
+}
+
+.pedia-folder-count {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	font-weight: normal;
+}
+
+.pedia-folder-children {
+	margin: 2px 0 4px 10px;
+}
+
+/* Note Rows */
+.pedia-tree-file-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px 4px 28px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.88em;
+	transition: background-color 0.15s ease;
+}
+.pedia-tree-file-row:hover {
+	background-color: var(--background-secondary);
+}
+
+.pedia-file-icon {
+	font-size: 0.95em;
+	opacity: 0.7;
+}
+
+.pedia-file-name {
+	color: var(--text-normal);
+	font-family: var(--font-text);
+}
+
+.pedia-tree-file-row.static-item {
+	padding-left: 12px;
+	color: var(--text-muted);
 }
 
 .pedia-success-banner {
 	text-align: center;
-	padding: 24px;
+	padding: 30px 16px;
 	color: var(--text-success);
-	font-weight: 500;
+	font-weight: 600;
+	font-size: 1.05em;
 }
 
-/* ── Action Bar & Progress Bar ─────────────────────────────────────── */
+/* ── Action Bar & Publish Button ───────────────────────────────────── */
 .pedia-actions-bar {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
 	align-items: flex-end;
+	margin-top: 10px;
 }
 
 .pedia-btn-publish {
-	padding: 8px 20px;
+	padding: 8px 24px;
 	font-size: 0.95em;
 	font-weight: 600;
+	border-radius: 6px;
 }
 
 .pedia-progress-bar {
@@ -123,116 +199,60 @@
 
 .pedia-progress-fill {
 	height: 100%;
-	width: 0%;
 	background-color: var(--interactive-accent);
+	width: 0%;
 	transition: width 0.2s ease;
 }
 
-/* ── Diagnostic Modal ──────────────────────────────────────────────── */
-.pedia-diagnostic-section {
-	margin-bottom: 20px;
-}
-
-.pedia-diagnostic-card {
-	border-radius: 8px;
-	padding: 12px;
-	margin-bottom: 10px;
-	border: 1px solid var(--background-modifier-border);
-}
-
-.pedia-diagnostic-card.error {
-	background-color: rgba(255, 0, 0, 0.05);
-	border-color: var(--color-red);
-}
-
-.pedia-diagnostic-card.warning {
-	background-color: rgba(255, 165, 0, 0.05);
-	border-color: var(--color-orange);
-}
-
-.pedia-card-rule {
-	font-weight: bold;
-	font-size: 0.85em;
-	text-transform: uppercase;
-	color: var(--text-muted);
-}
-
-.pedia-card-msg {
-	margin: 6px 0;
-	color: var(--text-normal);
-}
-
-.pedia-file-link {
-	color: var(--text-accent);
-	text-decoration: underline;
-	cursor: pointer;
-}
-
-/* ── Navigation Ordering Modal ─────────────────────────────────────── */
-.pedia-order-list-container {
-	max-height: 400px;
-	overflow-y: auto;
-	margin: 14px 0;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	padding: 8px;
-}
-
-.pedia-order-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 6px 10px;
-	border-radius: 4px;
-	background-color: var(--background-secondary);
-	margin-bottom: 6px;
-}
-
-.pedia-order-rank {
-	color: var(--text-muted);
-	font-weight: bold;
-	width: 30px;
-}
-
-.pedia-order-title {
-	flex-grow: 1;
-	font-weight: 500;
-}
-
-.pedia-order-buttons {
-	display: flex;
-	gap: 4px;
-}
-
-.pedia-btn-mini {
-	padding: 2px 8px;
-	font-size: 0.8em;
-	cursor: pointer;
-}
-
-/* ── Commit History & Rollback ─────────────────────────────────────── */
-.pedia-history-sec {
-	margin-top: 24px;
+/* ── Rollback Section ──────────────────────────────────────────────── */
+.pedia-rollback-sec {
+	margin-top: 18px;
 	border-top: 1px solid var(--background-modifier-border);
-	padding-top: 14px;
+	padding-top: 12px;
+}
+.pedia-rollback-sec h3 {
+	margin: 0 0 8px;
+	font-size: 0.95em;
+	color: var(--text-muted);
 }
 
 .pedia-commit-list {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	font-size: 0.85em;
+	gap: 4px;
 }
 
-.pedia-commit-row {
+.pedia-commit-item {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 6px 8px;
+	padding: 4px 8px;
 	background-color: var(--background-secondary);
-	border-radius: 6px;
+	border-radius: 4px;
+	font-size: 0.82em;
+}
+.pedia-commit-msg {
+	font-weight: 500;
+	color: var(--text-normal);
+}
+.pedia-commit-meta {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
 }
 
-.pedia-muted {
-	color: var(--text-muted);
+/* ── Diagnostic Alerts ─────────────────────────────────────────────── */
+.pedia-alert-box {
+	padding: 14px;
+	border-radius: 8px;
+	margin-bottom: 16px;
+}
+.pedia-alert-box.error {
+	background-color: rgba(239, 68, 68, 0.12);
+	border: 1px solid #ef4444;
+	color: var(--text-normal);
+}
+.pedia-alert-box.success {
+	background-color: rgba(34, 197, 94, 0.12);
+	border: 1px solid #22c55e;
+	color: var(--text-normal);
 }

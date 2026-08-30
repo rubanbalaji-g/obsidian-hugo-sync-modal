@@ -120,9 +120,9 @@ export class GitHubConnection {
 		});
 
 		// Advance branch ref
-		await this.octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+		await this.octokit.request("PATCH /repos/{owner}/{repo}/git/refs/heads/{branch}", {
 			...this.base(),
-			ref: `heads/${this.branch}`,
+			branch: this.branch,
 			sha: newCommit.data.sha,
 		});
 

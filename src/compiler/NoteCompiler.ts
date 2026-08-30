@@ -16,7 +16,7 @@ export interface CompiledNote {
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const CALLOUT_RE = /^(\s*)>\s*\[!(\w+)\]([+-]?)\s*(.*)?$/gm;
-const OBSIDIAN_COMMENT_RE = /%%[\s\S]*?%%/g;
+const OBSIDIAN_COMMENT_RE = /%%(?!\s*\{)[\s\S]*?%%/g;
 const BLOCK_REF_RE = /\s*\^[a-zA-Z0-9-]+$/gm;
 const WIKILINK_IMAGE_RE = /!\[\[([^\]]+)\]\]/g;
 

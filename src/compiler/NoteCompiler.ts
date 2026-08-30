@@ -35,32 +35,40 @@ export class NoteCompiler {
 
 	async compile(file: TFile, backlinkMap: BacklinkMap): Promise<CompiledNote> {
 		let raw = await this.vault.cachedRead(file);
-		const fm = this.metadataCache.getCache(file.path)?.frontmatter ?? {};
-
 		const slug = slugify(file.basename);
-		// Target path in repository matching vault content structure
-		const repoPath = `content/${file.path}`;
 
-		// 1. Strip existing frontmatter block
-		raw = raw.replace(FRONTMATTER_RE, "").trimStart();
+		// Map index.md at vault root to content/_index.md (Hugo branch root)
+		let relPath = file.path;
+		if (relPath === "index.md") {
+			relPath = "_index.md";
+		}
+		const repoPath = `content/${relPath}`;
 
-		// 2. Strip Obsidian comments (%% ... %%)
-		raw = raw.replace(OBSIDIAN_COMMENT_RE, "");
+		// Extract existing frontmatter block if present
+		let frontmatterBlock = "";
+		let body = raw;
+		const match = raw.match(FRONTMATTER_RE);
+		if (match) {
+			frontmatterBlock = match[0];
+			body = raw.substring(match[0].length);
+		}
 
-		// 3. Strip block reference anchors (^block-id)
-		raw = raw.replace(BLOCK_REF_RE, "");
+		// 1. Strip Obsidian comments (%% ... %%)
+		body = body.replace(OBSIDIAN_COMMENT_RE, "");
 
-		// 4. Convert wikilink images to standard markdown with modifiers preserved
-		raw = this.convertWikilinkImages(raw);
+		// 2. Strip block reference anchors (^block-id)
+		body = body.replace(BLOCK_REF_RE, "");
 
-		// 5. Resolve [[wikilinks]] → Hugo relref
-		raw = resolveWikilinks(raw, file, this.vault, this.metadataCache, this.publishedPaths);
+		// 3. Convert wikilink images to standard markdown with modifiers preserved
+		body = this.convertWikilinkImages(body);
 
-		// 6. Build Hugo frontmatter
-		const backlinks = backlinkMap.get(file.path) ?? [];
-		const { yaml } = transformFrontmatter(fm, slug, this.settings, backlinks);
+		let content: string;
+		if (frontmatterBlock) {
+			content = (frontmatterBlock + body).replace(/\r\n/g, "\n");
+		} else {
+			content = `---\npublish: true\n---\n${body}`.replace(/\r\n/g, "\n");
+		}
 
-		const content = yaml + "\n\n" + raw.trim() + "\n";
 		return { repoPath, content, slug };
 	}
 
@@ -136,6 +144,11 @@ pluralizeListTitles = false
       table = true
       taskList = true
       typographer = false
+      [markup.goldmark.extensions.passthrough]
+        enable = true
+        [markup.goldmark.extensions.passthrough.delimiters]
+          block = [['\\[', '\\]'], ['$$', '$$']]
+          inline = [['\\(', '\\)'], ['$', '$']]
   [markup.tableOfContents]
     startLevel = 2
     endLevel = 4

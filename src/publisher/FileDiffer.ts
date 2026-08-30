@@ -74,10 +74,10 @@ export async function diffFiles(
 		}
 	}
 
-	// Files on remote but not in local → to delete
+	// Files on remote under content/ but not in local → to delete
 	const toDelete: string[] = [];
 	for (const remotePath of remoteMap.keys()) {
-		if (!localFiles.has(remotePath)) {
+		if (remotePath.startsWith("content/") && !localFiles.has(remotePath)) {
 			toDelete.push(remotePath);
 		}
 	}

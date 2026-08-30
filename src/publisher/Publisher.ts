@@ -109,8 +109,11 @@ export class Publisher {
 			console.warn("Could not fetch remote tree (repo might be empty):", err);
 		}
 
-		// 4. Diff notes
-		const diff = await diffFiles(localContentMap, remoteTree.filter((r) => r.path.endsWith(".md")));
+		// 4. Diff notes strictly within content/ directory
+		const diff = await diffFiles(
+			localContentMap,
+			remoteTree.filter((r) => r.path.startsWith("content/") && r.path.endsWith(".md"))
+		);
 
 		const changedNotes = compiledNotes.filter((n) => diff.changed.includes(n.repoPath));
 		const newNotes = compiledNotes.filter((n) => diff.newFiles.includes(n.repoPath));

@@ -16,7 +16,7 @@ export interface CompiledNote {
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const CALLOUT_RE = /^(\s*)>\s*\[!(\w+)\]([+-]?)\s*(.*)?$/gm;
-const OBSIDIAN_COMMENT_RE = /%%(?!\s*\{)[\s\S]*?%%/g;
+const CODE_BLOCK_OR_COMMENT_RE = /(```[\s\S]*?```)|(%%[\s\S]*?%%)/g;
 const BLOCK_REF_RE = /\s*\^[a-zA-Z0-9-]+$/gm;
 const WIKILINK_IMAGE_RE = /!\[\[([^\]]+)\]\]/g;
 
@@ -53,8 +53,11 @@ export class NoteCompiler {
 			body = raw.substring(match[0].length);
 		}
 
-		// 1. Strip Obsidian comments (%% ... %%)
-		body = body.replace(OBSIDIAN_COMMENT_RE, "");
+		// 1. Strip Obsidian comments (%% ... %%) ONLY outside fenced code blocks
+		body = body.replace(CODE_BLOCK_OR_COMMENT_RE, (match, codeBlock) => {
+			if (codeBlock) return codeBlock;
+			return "";
+		});
 
 		// 2. Strip block reference anchors (^block-id)
 		body = body.replace(BLOCK_REF_RE, "");

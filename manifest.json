@@ -1,9 +1,9 @@
 {
-  "id": "pedia-notes-hugo-publisher",
-  "name": "PediaNotes Hugo Publisher",
+  "id": "obsidian-hugo-sync-modal",
+  "name": "Hugo Sync Modal",
   "version": "1.0.0",
   "minAppVersion": "1.4.0",
-  "description": "Publish Obsidian notes to a Hugo site on GitHub with frontmatter-driven publishing, theme control, and live validation.",
+  "description": "Publish and sync Obsidian notes to any Hugo static site on GitHub with git blob diffing, tree-view selection, and one-click publishing.",
   "author": "Dr. Rubanbalaji",
   "authorUrl": "https://github.com/rubanbalaji-g",
   "isDesktopOnly": true

@@ -18,7 +18,8 @@ ${l}`.replace(/\r\n/g,`
 `;return`baseURL = "${e.endsWith("/")?e:e+"/"}"
 locale = "en"
 title = "${n}"
-paginate = 50
+[pagination]
+  pagerSize = 50
 pluralizeListTitles = false
 
 [params]

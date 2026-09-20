@@ -37,9 +37,13 @@ export class NoteCompiler {
 		let raw = await this.vault.cachedRead(file);
 		const slug = slugify(file.basename);
 
-		// Map index.md at vault root to content/_index.md (Hugo branch root)
+		// Check if file is designated as main.index in frontmatter
+		const fm = this.metadataCache.getCache(file.path)?.frontmatter;
+		const isMainIndex = fm?.["main.index"] === true;
+
+		// Map index.md at vault root or any note with main.index: true to content/_index.md (Hugo home bundle)
 		let relPath = file.path;
-		if (relPath === "index.md") {
+		if (relPath === "index.md" || isMainIndex) {
 			relPath = "_index.md";
 		}
 		const repoPath = `content/${relPath}`;

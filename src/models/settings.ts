@@ -43,11 +43,11 @@ export interface HugoPublisherSettings {
 
 export const DEFAULT_SETTINGS: HugoPublisherSettings = {
 	githubToken: "",
-	githubUsername: "",
-	githubRepo: "",
+	githubUsername: "rubanbalaji-g",
+	githubRepo: "dnb-practicals",
 	branch: "main",
 
-	siteBaseUrl: "https://theory.pedianotes.in",
+	siteBaseUrl: "https://practical.pedianotes.in/",
 	siteName: "PediaNotes",
 	siteDescription: "Pediatric Clinical Theory & Exam Notes by Dr. Rubanbalaji",
 	siteAuthor: "Dr. Rubanbalaji",

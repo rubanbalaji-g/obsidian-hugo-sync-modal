@@ -72,6 +72,8 @@ export class NoteCompiler {
 			content = `---\npublish: true\n---\n${body}`.replace(/\r\n/g, "\n");
 		}
 
+		content = content.replace(/\/img\/user\/00\.Attachments\/(?:system_cards\/)?([^\s"')]+)/g, '/images/$1');
+
 		return { repoPath, content, slug };
 	}
 

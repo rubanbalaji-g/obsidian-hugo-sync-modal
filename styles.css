@@ -256,3 +256,40 @@
 	border: 1px solid #22c55e;
 	color: var(--text-normal);
 }
+
+/* Section tabs in Publication Center */
+.pub-center-note-url {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-monospace);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 340px;
+}
+.pub-center-open-btn {
+    padding: 2px 6px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    margin-left: 6px;
+    vertical-align: middle;
+}
+.pub-center-open-btn:hover {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+.build-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+}
+.build-status-dot.success { background: #22c55e; }
+.build-status-dot.pending { background: #f59e0b; }
+.build-status-dot.failure { background: #ef4444; }

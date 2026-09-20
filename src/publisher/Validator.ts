@@ -104,24 +104,7 @@ export function validatePublishedNotes(
 		}
 	}
 
-	// ── 4. Warn if a folder with published notes has no folder.index ──────
-	const folderNoteCounts = new Map<string, number>();
-	for (const file of publishedFiles) {
-		const folder = file.parent?.path ?? "/";
-		// Skip root-level notes
-		if (!file.parent || file.parent.isRoot()) continue;
-		folderNoteCounts.set(folder, (folderNoteCounts.get(folder) ?? 0) + 1);
-	}
-	for (const [folder, count] of folderNoteCounts.entries()) {
-		if (count > 0 && !folderIndexMap.has(folder)) {
-			warnings.push({
-				type: "warning",
-				rule: "folder.index",
-				message: `Folder "${folder}" has ${count} published notes but no \`folder.index: true\`. The breadcrumb link for this section will be missing.`,
-				files: [],
-			});
-		}
-	}
+
 
 	return {
 		valid: errors.length === 0,

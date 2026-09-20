@@ -29,39 +29,64 @@ export function transformFrontmatter(
 	settings: HugoPublisherSettings,
 	backlinks: BacklinkEntry[] = []
 ): TransformedFrontmatter {
+	const rawCopy = { ...raw };
+
+	if (rawCopy["permalink"] !== undefined && rawCopy["url"] === undefined) {
+		rawCopy["url"] = rawCopy["permalink"];
+		delete rawCopy["permalink"];
+	}
+	if (rawCopy["dg-note-properties"]) {
+		const props = rawCopy["dg-note-properties"] as Record<string, any>;
+		if (props && props["cssclasses"]) {
+			rawCopy["cssclasses"] = Array.isArray(props["cssclasses"]) ? props["cssclasses"].join(" ") : props["cssclasses"];
+		}
+	}
+	if (rawCopy["hide"] === true) {
+		rawCopy["hidden"] = true;
+		delete rawCopy["hide"];
+	}
+	
+	rawCopy["publish"] = true;
+
+	for (const key of Object.keys(rawCopy)) {
+		if (key.startsWith("dg-") || key === "dg-note-properties") {
+			delete rawCopy[key];
+		}
+	}
+
 	const out: Record<string, unknown> = {};
 
 	// Title — use explicit title or derive from slug
-	out["title"] = raw["title"] ?? noteSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+	out["title"] = rawCopy["title"] ?? noteSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 	// Index flags
-	if (raw["main.index"] === true) {
+	if (rawCopy["main.index"] === true) {
 		out["layout"] = "home";
 		out["isIndex"] = true;
 		out["main.index"] = true;
-	} else if (raw["folder.index"] === true) {
+	} else if (rawCopy["folder.index"] === true) {
 		out["isIndex"] = true;
 		out["folder.index"] = true;
 	}
 	out["publish"] = true;
 
 	// Running title → Hugo alias
-	if (raw["running.title"]) {
-		const alias = String(raw["running.title"]).trim();
+	if (rawCopy["running.title"]) {
+		const alias = String(rawCopy["running.title"]).trim();
 		out["aliases"] = [`/${alias}`];
 	}
 
 	// Lucide icon
-	if (settings.showNoteIcons && raw["note.icon"]) {
-		out["icon"] = normaliseLucideIconName(String(raw["note.icon"]));
+	if (settings.showNoteIcons && rawCopy["note.icon"]) {
+		out["icon"] = normaliseLucideIconName(String(rawCopy["note.icon"]));
 	}
 
 	// Timestamps
-	if (raw["created"]) out["date"] = raw["created"];
-	if (raw["updated"]) out["lastmod"] = raw["updated"];
+	if (rawCopy["created"]) out["date"] = rawCopy["created"];
+	if (rawCopy["updated"]) out["lastmod"] = rawCopy["updated"];
 
 	// Tags
-	if (raw["tags"]) out["tags"] = raw["tags"];
+	if (rawCopy["tags"]) out["tags"] = rawCopy["tags"];
 
 	// Backlinks
 	if (backlinks.length > 0) {
@@ -70,7 +95,7 @@ export function transformFrontmatter(
 
 	// Pass-through: forward all non-stripped keys
 	if (settings.passThroughFrontmatter) {
-		for (const [key, value] of Object.entries(raw)) {
+		for (const [key, value] of Object.entries(rawCopy)) {
 			if (!STRIP_KEYS.has(key) && !(key in out)) {
 				out[key] = value;
 			}

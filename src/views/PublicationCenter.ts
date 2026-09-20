@@ -487,6 +487,19 @@ export class PublicationCenterModal extends Modal {
 		}
 	}
 
+	private getNoteUrl(file: any): string | null {
+		const fm = this.app.metadataCache.getCache(file.path)?.frontmatter;
+		if (!fm) return null;
+		let urlStr = fm["url"] || fm["permalink"];
+		if (urlStr) {
+			let baseUrl = this.settings.siteBaseUrl;
+			if (!baseUrl.endsWith("/")) baseUrl += "/";
+			if (urlStr.startsWith("/")) urlStr = urlStr.substring(1);
+			return baseUrl + urlStr;
+		}
+		return null;
+	}
+
 	private renderFileRow(
 		parentEl: HTMLElement,
 		file: TreeFileItem,
@@ -506,6 +519,23 @@ export class PublicationCenterModal extends Modal {
 
 		row.createEl("span", { text: "📄", cls: "pedia-file-icon" });
 		row.createEl("span", { text: file.name, cls: "pedia-file-name" });
+
+		// Add URL link if available
+		let relVaultPath = file.repoPath;
+		if (relVaultPath.startsWith("content/")) {
+			relVaultPath = relVaultPath.substring("content/".length);
+			const tfile = this.app.vault.getAbstractFileByPath(relVaultPath);
+			if (tfile) {
+				const liveUrl = this.getNoteUrl(tfile);
+				if (liveUrl) {
+					const btn = row.createEl("button", { text: "↗", cls: "pub-center-open-btn" });
+					btn.onclick = (e) => {
+						e.stopPropagation();
+						window.open(liveUrl, '_blank');
+					};
+				}
+			}
+		}
 	}
 
 	private updatePublishCount() {

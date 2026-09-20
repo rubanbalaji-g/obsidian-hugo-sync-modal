@@ -51,6 +51,13 @@ export class Publisher {
 		this.commitBuilder = new CommitBuilder(this.connection);
 	}
 
+	async testConnection(): Promise<void> {
+		const res = await this.connection.testConnection();
+		if (!res.ok) {
+			throw new Error(res.error || "Failed to connect to GitHub");
+		}
+	}
+
 	getPublishedFiles(): TFile[] {
 		return this.vault.getMarkdownFiles().filter((file) => {
 			const fm = this.metadataCache.getCache(file.path)?.frontmatter;

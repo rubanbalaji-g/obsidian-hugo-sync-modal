@@ -75,22 +75,19 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Test GitHub Connection")
-			.setDesc("Verifies token validity, repository access, and 'repo' write scope")
+			.setDesc("Verify your token and repository settings.")
 			.addButton((btn) =>
 				btn.setButtonText("Test Connection").onClick(async () => {
 					btn.setDisabled(true);
 					btn.setButtonText("Testing...");
-					const conn = new GitHubConnection(this.plugin.settings);
-					const res = await conn.testConnection();
+					try {
+						await this.plugin.publisher.testConnection();
+						new Notice("✅ Connection successful!");
+					} catch (err) {
+						new Notice(`❌ Connection failed: ${err.message || err}`);
+					}
 					btn.setDisabled(false);
 					btn.setButtonText("Test Connection");
-
-					if (res.ok) {
-						const scopeText = res.hasRepoScope ? "Full 'repo' write scope confirmed." : "⚠️ Warning: 'repo' scope might be missing.";
-						new Notice(`✅ Connection successful! ${scopeText}`);
-					} else {
-						new Notice(`❌ Connection failed: ${res.error}`);
-					}
 				})
 			);
 
@@ -99,15 +96,23 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Site Base URL")
-			.setDesc("Your live domain or URL (e.g. https://pedianotes.in or https://rubanbalaji-g.github.io/dnb-theory-hugo)")
+			.setDesc("Your live Hugo site URL (e.g. https://practical.pedianotes.in/)")
 			.addText((text) =>
 				text
-					.setPlaceholder("https://pedianotes.in")
+					.setPlaceholder("https://practical.pedianotes.in/")
 					.setValue(this.plugin.settings.siteBaseUrl)
 					.onChange(async (val) => {
 						this.plugin.settings.siteBaseUrl = val.trim();
 						await this.plugin.saveSettings();
 					})
+			);
+
+		new Setting(containerEl)
+			.setName("Open Live Site")
+			.addButton((btn) =>
+				btn.setButtonText("Open in Browser").onClick(() => {
+					window.open(this.plugin.settings.siteBaseUrl, '_blank');
+				})
 			);
 
 		new Setting(containerEl)

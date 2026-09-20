@@ -192,17 +192,34 @@ export class SettingsTab extends PluginSettingTab {
 			);
 		});
 
-		new Setting(containerEl).addButton((b) =>
-			b
-				.setButtonText("➕ Add Navigation Link")
-				.setCta()
-				.onClick(async () => {
-					if (!this.plugin.settings.navLinks) this.plugin.settings.navLinks = [];
-					this.plugin.settings.navLinks.push({ name: "", url: "" });
-					await this.plugin.saveSettings();
-					this.display();
-				})
-		);
+		new Setting(containerEl)
+			.addButton((b) =>
+				b
+					.setButtonText("➕ Add Navigation Link")
+					.setCta()
+					.onClick(async () => {
+						if (!this.plugin.settings.navLinks) this.plugin.settings.navLinks = [];
+						this.plugin.settings.navLinks.push({ name: "", url: "" });
+						await this.plugin.saveSettings();
+						this.display();
+					})
+			)
+			.addButton((btn) =>
+				btn
+					.setButtonText("🚀 Sync Links to GitHub (hugo.toml)")
+					.onClick(async () => {
+						btn.setDisabled(true);
+						btn.setButtonText("Syncing...");
+						try {
+							const sha = await this.plugin.publisher.updateHugoConfig();
+							new Notice(`✅ Navigation & hugo.toml updated on GitHub! Commit: ${sha.slice(0, 7)}`);
+						} catch (err) {
+							new Notice(`❌ Failed to sync hugo.toml: ${err}`);
+						}
+						btn.setDisabled(false);
+						btn.setButtonText("🚀 Sync Links to GitHub (hugo.toml)");
+					})
+			);
 
 		// ── THEMES & APPEARANCE ───────────────────────────────────────────
 		containerEl.createEl("h3", { text: "🎨 Theme & Appearance" });

@@ -119,7 +119,9 @@ export class NoteCompiler {
 		return `baseURL = "${siteBaseUrl.endsWith("/") ? siteBaseUrl : siteBaseUrl + "/"}"
 locale = "en"
 title = "${siteName}"
-paginate = 50
+
+[pagination]
+  pagerSize = 50
 pluralizeListTitles = false
 
 [params]
@@ -128,6 +130,7 @@ pluralizeListTitles = false
   siteName = "${siteName}"
   baseTheme = "${baseTheme}"
   accentColor = "${accentColor}"
+  logo = "/logo.svg"
   fontFamily = "${fontFamily}"
   customFontUrl = "${customFontUrl}"
   obsidianThemeCssUrl = "${obsidianThemeCssUrl}"
@@ -140,6 +143,18 @@ pluralizeListTitles = false
   showNoteIcons = ${showNoteIcons}
   computeBacklinks = ${computeBacklinks}
   generateTagIndex = ${generateTagIndex}${navLinksToml}
+
+[params.sidebarTitles]
+  "01-proforma"                       = "Case Proformas"
+  "02-history-taking-and-examination" = "History & Examination"
+  "03-model-case-sheets"              = "Model Case Sheets"
+  "04-questions"                      = "Viva Questions"
+
+[params.sidebarIcons]
+  "01-proforma"                       = "clipboard-list"
+  "02-history-taking-and-examination" = "stethoscope"
+  "03-model-case-sheets"              = "book-open"
+  "04-questions"                      = "message-circle-question"
 
 [markup]
   [markup.goldmark]

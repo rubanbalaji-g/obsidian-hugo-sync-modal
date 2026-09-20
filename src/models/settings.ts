@@ -48,12 +48,12 @@ export const DEFAULT_SETTINGS: HugoPublisherSettings = {
 	branch: "main",
 
 	siteBaseUrl: "https://practical.pedianotes.in/",
-	siteName: "PediaNotes",
-	siteDescription: "Pediatric Clinical Theory & Exam Notes by Dr. Rubanbalaji",
+	siteName: "PediaNotes Practical",
+	siteDescription: "DNB Pediatrics Practical Examination — Model Case Sheets, Proformas & Viva Questions",
 	siteAuthor: "Dr. Rubanbalaji",
 
 	baseTheme: "dark",
-	accentColor: "#00a868",
+	accentColor: "#0ea5e9",
 	fontFamily: "system",
 	customFontUrl: "",
 	obsidianThemeCssUrl: "",
@@ -71,7 +71,10 @@ export const DEFAULT_SETTINGS: HugoPublisherSettings = {
 	showCreatedTimestamp: true,
 	showUpdatedTimestamp: true,
 	timestampFormat: "DD MMM YYYY",
-	navLinks: [{ name: "Home", url: "https://pedianotes.in" }],
+	navLinks: [
+		{ name: "Home", url: "https://pedianotes.in" },
+		{ name: "Theory", url: "https://theory.pedianotes.in" },
+	],
 
 	lastSyncAt: "",
 	lastCommitSha: "",

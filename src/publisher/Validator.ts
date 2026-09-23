@@ -32,21 +32,24 @@ export function validatePublishedNotes(
 	const warnings: ValidationWarning[] = [];
 
 	// ── 1. main.index: true must appear exactly once ──────────────────────
-	const mainIndexFiles = publishedFiles.filter(
-		(f) => metadataCache.getCache(f.path)?.frontmatter?.["main.index"] === true
-	);
+	const mainIndexFiles = publishedFiles.filter((f) => {
+		const fm = metadataCache.getCache(f.path)?.frontmatter;
+		if (fm?.["main.index"] === true) return true;
+		const normalized = f.path.replace(/\\/g, "/");
+		return !normalized.includes("/") && f.name.toLowerCase() === "index.md";
+	});
 	if (mainIndexFiles.length === 0) {
 		errors.push({
 			type: "error",
 			rule: "main.index",
-			message: "No note has `main.index: true`. The home page will be missing.",
+			message: "No note has `main.index: true` (or root `index.md`). The home page will be missing.",
 			files: [],
 		});
 	} else if (mainIndexFiles.length > 1) {
 		errors.push({
 			type: "error",
 			rule: "main.index",
-			message: `Multiple notes have \`main.index: true\` — only one is allowed.`,
+			message: `Multiple notes have \`main.index: true\` (or root \`index.md\`) — only one is allowed.`,
 			files: mainIndexFiles.map((f) => f.path),
 		});
 	}
@@ -55,7 +58,9 @@ export function validatePublishedNotes(
 	const folderIndexMap = new Map<string, TFile[]>();
 	for (const file of publishedFiles) {
 		const fm = metadataCache.getCache(file.path)?.frontmatter;
-		if (fm?.["folder.index"] === true) {
+		const normalized = file.path.replace(/\\/g, "/");
+		const isFolderIndex = fm?.["folder.index"] === true || (normalized.includes("/") && file.name.toLowerCase() === "index.md");
+		if (isFolderIndex) {
 			const folder = file.parent?.path ?? "/";
 			const existing = folderIndexMap.get(folder) ?? [];
 			existing.push(file);
@@ -67,7 +72,7 @@ export function validatePublishedNotes(
 			errors.push({
 				type: "error",
 				rule: "folder.index",
-				message: `Folder "${folder}" has ${files.length} notes with \`folder.index: true\` — only one is allowed.`,
+				message: `Folder "${folder}" has ${files.length} notes designated as folder index (\`folder.index: true\` or \`index.md\`) — only one is allowed.`,
 				files: files.map((f) => f.path),
 			});
 		}

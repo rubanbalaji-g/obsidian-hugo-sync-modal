@@ -37,14 +37,27 @@ export class NoteCompiler {
 		let raw = await this.vault.cachedRead(file);
 		const slug = slugify(file.basename);
 
-		// Check if file is designated as main.index in frontmatter
+		// Check if file is designated as main.index or folder.index in frontmatter
 		const fm = this.metadataCache.getCache(file.path)?.frontmatter;
-		const isMainIndex = fm?.["main.index"] === true;
+		const isMainIndex = fm?.["main.index"] === true || /(?:^|\n)\s*main\.index:\s*true/i.test(raw);
+		const isFolderIndex = fm?.["folder.index"] === true || /(?:^|\n)\s*folder\.index:\s*true/i.test(raw);
 
-		// Map index.md at vault root or any note with main.index: true to content/_index.md (Hugo home bundle)
-		let relPath = file.path;
-		if (relPath === "index.md" || isMainIndex) {
+		// Hugo branch bundles:
+		// 1. Any note with main.index: true -> content/_index.md (Root home page)
+		// 2. Any note with folder.index: true -> content/<folder>/_index.md (Section index)
+		// 3. Any note named index.md (case-insensitive) -> content/<folder>/_index.md (or content/_index.md at root)
+		const normalizedPath = file.path.replace(/\\/g, "/");
+		const lastSlash = normalizedPath.lastIndexOf("/");
+		const folderPath = lastSlash !== -1 ? normalizedPath.substring(0, lastSlash) : "";
+		const fileName = (file.name || normalizedPath.split("/").pop() || "").toLowerCase();
+
+		let relPath = normalizedPath;
+		if (isMainIndex) {
 			relPath = "_index.md";
+		} else if (isFolderIndex) {
+			relPath = folderPath ? `${folderPath}/_index.md` : "_index.md";
+		} else if (fileName === "index.md") {
+			relPath = folderPath ? `${folderPath}/_index.md` : "_index.md";
 		}
 		const repoPath = `content/${relPath}`;
 

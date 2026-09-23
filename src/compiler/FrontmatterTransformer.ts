@@ -70,6 +70,23 @@ export function transformFrontmatter(
 	}
 	out["publish"] = true;
 
+	// Layout and navigation overrides
+	if (rawCopy["no.topics"] !== undefined) {
+		out["no.topics"] = rawCopy["no.topics"];
+	} else if (rawCopy["notopics"] !== undefined) {
+		out["no.topics"] = rawCopy["notopics"];
+	}
+	if (rawCopy["no.contents"] !== undefined) {
+		out["no.contents"] = rawCopy["no.contents"];
+	} else if (rawCopy["nocontents"] !== undefined) {
+		out["no.contents"] = rawCopy["nocontents"];
+	}
+	if (rawCopy["no"] && typeof rawCopy["no"] === "object") {
+		const noObj = rawCopy["no"] as Record<string, unknown>;
+		if (noObj["topics"] !== undefined) out["no.topics"] = noObj["topics"];
+		if (noObj["contents"] !== undefined) out["no.contents"] = noObj["contents"];
+	}
+
 	// Running title → Hugo alias
 	if (rawCopy["running.title"]) {
 		const alias = String(rawCopy["running.title"]).trim();

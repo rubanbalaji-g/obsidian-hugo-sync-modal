@@ -51,6 +51,26 @@ export class NoteCompiler {
 		const folderPath = lastSlash !== -1 ? normalizedPath.substring(0, lastSlash) : "";
 		const fileName = (file.name || normalizedPath.split("/").pop() || "").toLowerCase();
 
+		// Control configuration files (tree.weight.md, do.not.display.md):
+		// Pass raw clean content directly to content/<fileName> without Hugo note transformations
+		if (
+			fileName === "tree.weight.md" ||
+			fileName === "tree.weight" ||
+			fileName === "do.not.display.md" ||
+			fileName === "do.not.display"
+		) {
+			let body = raw;
+			const match = raw.match(FRONTMATTER_RE);
+			if (match) {
+				body = raw.substring(match[0].length).trim();
+			}
+			return {
+				repoPath: `content/${fileName}`,
+				content: body,
+				slug: file.basename,
+			};
+		}
+
 		let relPath = normalizedPath;
 		if (isMainIndex) {
 			relPath = "_index.md";

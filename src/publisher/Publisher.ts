@@ -59,10 +59,25 @@ export class Publisher {
 	}
 
 	getPublishedFiles(): TFile[] {
-		return this.vault.getMarkdownFiles().filter((file) => {
+		const files = this.vault.getMarkdownFiles().filter((file) => {
 			const fm = this.metadataCache.getCache(file.path)?.frontmatter;
 			return fm?.["publish"] === true;
 		});
+
+		// Also discover root-level control files (tree.weight, do.not.display)
+		const rootFiles = this.vault.getFiles().filter((file) => {
+			const name = file.name.toLowerCase();
+			const isControl = name === "tree.weight" || name === "tree.weight.md" || name === "do.not.display" || name === "do.not.display.md";
+			const isRoot = !file.path.replace(/\\/g, "/").includes("/");
+			return isControl && isRoot;
+		});
+		for (const rf of rootFiles) {
+			if (!files.some((f) => f.path === rf.path)) {
+				files.push(rf);
+			}
+		}
+
+		return files;
 	}
 
 	async preparePublishPlan(): Promise<PublishPlan> {

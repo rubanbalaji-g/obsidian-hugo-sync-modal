@@ -71,20 +71,21 @@ export function transformFrontmatter(
 	out["publish"] = true;
 
 	// Layout and navigation overrides
-	if (rawCopy["no.topics"] !== undefined) {
-		out["no.topics"] = rawCopy["no.topics"];
-	} else if (rawCopy["notopics"] !== undefined) {
-		out["no.topics"] = rawCopy["notopics"];
+	const noTopicsVal = rawCopy["no.topics"] ?? rawCopy["notopics"] ?? rawCopy["no-topics"] ?? rawCopy["no.topic"] ?? rawCopy["notopic"] ?? rawCopy["no.sidebar"] ?? rawCopy["nosidebar"] ?? rawCopy["no.filetree"];
+	if (noTopicsVal !== undefined) {
+		out["no.topics"] = noTopicsVal;
 	}
-	if (rawCopy["no.contents"] !== undefined) {
-		out["no.contents"] = rawCopy["no.contents"];
-	} else if (rawCopy["nocontents"] !== undefined) {
-		out["no.contents"] = rawCopy["nocontents"];
+	const noContentsVal = rawCopy["no.contents"] ?? rawCopy["nocontents"] ?? rawCopy["no-contents"] ?? rawCopy["no.content"] ?? rawCopy["nocontent"] ?? rawCopy["no-content"];
+	if (noContentsVal !== undefined) {
+		out["no.contents"] = noContentsVal;
 	}
 	if (rawCopy["no"] && typeof rawCopy["no"] === "object") {
 		const noObj = rawCopy["no"] as Record<string, unknown>;
 		if (noObj["topics"] !== undefined) out["no.topics"] = noObj["topics"];
+		if (noObj["topic"] !== undefined) out["no.topics"] = noObj["topic"];
+		if (noObj["sidebar"] !== undefined) out["no.topics"] = noObj["sidebar"];
 		if (noObj["contents"] !== undefined) out["no.contents"] = noObj["contents"];
+		if (noObj["content"] !== undefined) out["no.contents"] = noObj["content"];
 	}
 
 	// Running title → Hugo alias

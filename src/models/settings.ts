@@ -10,6 +10,12 @@ export interface HugoPublisherSettings {
 	siteName: string;
 	siteDescription: string;
 	siteAuthor: string;
+	siteFaviconPath: string;
+	siteLogoType: "none" | "icon" | "image";
+	siteLogoIcon: string;
+	siteLogoPath: string;
+	footerFormat: "markdown" | "html";
+	footerContent: string;
 
 	// ── Theme ─────────────────────────────────────────────────────────────
 	baseTheme: "light" | "dark" | "system";
@@ -51,6 +57,12 @@ export const DEFAULT_SETTINGS: HugoPublisherSettings = {
 	siteName: "PediaNotes Practical",
 	siteDescription: "DNB Pediatrics Practical Examination — Model Case Sheets, Proformas & Viva Questions",
 	siteAuthor: "Dr. Rubanbalaji",
+	siteFaviconPath: "",
+	siteLogoType: "none",
+	siteLogoIcon: "",
+	siteLogoPath: "",
+	footerFormat: "markdown",
+	footerContent: "",
 
 	baseTheme: "dark",
 	accentColor: "#0ea5e9",

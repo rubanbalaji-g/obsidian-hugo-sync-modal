@@ -1,7 +1,7 @@
 {
   "id": "obsidian-hugo-sync-modal",
   "name": "Hugo Sync Modal",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minAppVersion": "1.4.0",
   "description": "Publish and sync Obsidian notes to any Hugo static site on GitHub with git blob diffing, tree-view selection, and one-click publishing.",
   "author": "Dr. Rubanbalaji",

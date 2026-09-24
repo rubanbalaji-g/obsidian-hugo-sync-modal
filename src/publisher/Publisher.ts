@@ -249,7 +249,7 @@ export class Publisher {
 		return result.sha;
 	}
 
-	async updateHugoConfig(): Promise<string> {
+	async updateHugoConfig(commitMessage = "chore: update hugo.toml configuration from Obsidian plugin"): Promise<string> {
 		const toml = this.compiler.generateHugoToml();
 		const filesToCommit: FileToCommit[] = [
 			{
@@ -261,7 +261,109 @@ export class Publisher {
 		const result = await this.commitBuilder.commit(
 			filesToCommit,
 			[],
-			"chore: update hugo.toml configuration from Obsidian plugin"
+			commitMessage
+		);
+		return result.sha;
+	}
+
+	async syncSiteIdentity(): Promise<string> {
+		const filesToCommit: FileToCommit[] = [
+			{
+				path: "hugo.toml",
+				content: this.compiler.generateHugoToml(),
+				encoding: "utf-8",
+			},
+		];
+
+		// Include favicon asset if specified
+		if (this.settings.siteFaviconPath && this.settings.siteFaviconPath.trim()) {
+			const favFile = this.vault.getAbstractFileByPath(this.settings.siteFaviconPath);
+			if (favFile instanceof TFile) {
+				const buffer = await this.vault.readBinary(favFile);
+				const base64 = Base64.fromUint8Array(new Uint8Array(buffer));
+				const ext = favFile.extension.toLowerCase();
+				filesToCommit.push({
+					path: `static/favicon.${ext}`,
+					content: base64,
+					encoding: "base64",
+				});
+			}
+		}
+
+		// Include logo asset if specified
+		if (
+			this.settings.siteLogoType === "image" &&
+			this.settings.siteLogoPath &&
+			this.settings.siteLogoPath.trim()
+		) {
+			const logoFile = this.vault.getAbstractFileByPath(this.settings.siteLogoPath);
+			if (logoFile instanceof TFile) {
+				const buffer = await this.vault.readBinary(logoFile);
+				const base64 = Base64.fromUint8Array(new Uint8Array(buffer));
+				const ext = logoFile.extension.toLowerCase();
+				filesToCommit.push({
+					path: `static/logo.${ext}`,
+					content: base64,
+					encoding: "base64",
+				});
+			}
+		}
+
+		const result = await this.commitBuilder.commit(
+			filesToCommit,
+			[],
+			"chore(site): update site identity, footer & assets"
+		);
+		return result.sha;
+	}
+
+	async masterSync(): Promise<string> {
+		const filesToCommit: FileToCommit[] = [
+			{
+				path: "hugo.toml",
+				content: this.compiler.generateHugoToml(),
+				encoding: "utf-8",
+			},
+		];
+
+		// Include favicon asset if specified
+		if (this.settings.siteFaviconPath && this.settings.siteFaviconPath.trim()) {
+			const favFile = this.vault.getAbstractFileByPath(this.settings.siteFaviconPath);
+			if (favFile instanceof TFile) {
+				const buffer = await this.vault.readBinary(favFile);
+				const base64 = Base64.fromUint8Array(new Uint8Array(buffer));
+				const ext = favFile.extension.toLowerCase();
+				filesToCommit.push({
+					path: `static/favicon.${ext}`,
+					content: base64,
+					encoding: "base64",
+				});
+			}
+		}
+
+		// Include logo asset if specified
+		if (
+			this.settings.siteLogoType === "image" &&
+			this.settings.siteLogoPath &&
+			this.settings.siteLogoPath.trim()
+		) {
+			const logoFile = this.vault.getAbstractFileByPath(this.settings.siteLogoPath);
+			if (logoFile instanceof TFile) {
+				const buffer = await this.vault.readBinary(logoFile);
+				const base64 = Base64.fromUint8Array(new Uint8Array(buffer));
+				const ext = logoFile.extension.toLowerCase();
+				filesToCommit.push({
+					path: `static/logo.${ext}`,
+					content: base64,
+					encoding: "base64",
+				});
+			}
+		}
+
+		const result = await this.commitBuilder.commit(
+			filesToCommit,
+			[],
+			"chore(site): master sync all settings & hugo.toml"
 		);
 		return result.sha;
 	}

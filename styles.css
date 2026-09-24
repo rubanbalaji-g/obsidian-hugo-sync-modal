@@ -293,3 +293,265 @@
 .build-status-dot.success { background: #22c55e; }
 .build-status-dot.pending { background: #f59e0b; }
 .build-status-dot.failure { background: #ef4444; }
+
+/* ── Top Header Row & Master Sync Button ────────────────────────────── */
+.pedia-top-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1.5rem;
+	padding-bottom: 0.6rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pedia-main-heading {
+	margin: 0;
+	font-size: var(--font-ui-large);
+	font-weight: var(--font-bold);
+	color: var(--text-normal);
+}
+
+.pedia-master-sync-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	font-size: var(--font-ui-smaller);
+	padding: 6px 14px;
+	border-radius: var(--radius-m);
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	cursor: pointer;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+	transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.pedia-master-sync-btn:hover {
+	filter: brightness(1.1);
+	transform: translateY(-1px);
+}
+
+.pedia-master-icon-wrap {
+	display: inline-flex;
+	align-items: center;
+	color: #facc15; /* Vibrant gold sparkles */
+}
+
+.pedia-master-sync-btn.is-loading .pedia-master-icon-wrap svg {
+	animation: pedia-spin 1s linear infinite;
+}
+
+/* ── Section In-line Header Row ─────────────────────────────────────── */
+.pedia-section-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 2rem;
+	margin-bottom: 0.75rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: 0.35rem;
+}
+
+.pedia-section-title {
+	margin: 0;
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.pedia-header-sync-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px 6px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.pedia-header-sync-btn:hover {
+	color: var(--text-accent);
+	background: var(--background-modifier-hover);
+}
+
+.pedia-header-sync-btn.is-loading svg {
+	animation: pedia-spin 1s linear infinite;
+}
+
+@keyframes pedia-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+/* ── Thumbnail Previews ─────────────────────────────────────────────── */
+.pedia-thumbnail-preview-row {
+	margin: 0.25rem 0 1rem 0;
+	padding-left: 0.5rem;
+}
+
+.pedia-thumb-box {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 10px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.pedia-thumb-img {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+	border-radius: var(--radius-s);
+	background: rgba(0, 0, 0, 0.1);
+}
+
+.pedia-thumb-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+}
+
+/* ── Inline Icon Preview ────────────────────────────────────────────── */
+.pedia-inline-icon-preview {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-right: 8px;
+	color: var(--interactive-accent);
+}
+
+.pedia-icon-preview-text {
+	font-size: var(--font-ui-smaller);
+	font-weight: 500;
+	color: var(--text-muted);
+}
+
+.pedia-icon-preview-none {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+/* ── Image Suggest Modal ────────────────────────────────────────────── */
+.pedia-image-suggest-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.pedia-image-suggest-badge {
+	font-size: 10px;
+	font-weight: 700;
+	padding: 2px 5px;
+	border-radius: 3px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.pedia-image-suggest-name {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.pedia-image-suggest-path {
+	font-size: 11px;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+}
+
+/* ── Footer Editor Modal ────────────────────────────────────────────── */
+.pedia-footer-editor-modal {
+	width: 80vw;
+	max-width: 800px;
+}
+
+.pedia-footer-tab-row {
+	display: flex;
+	gap: 8px;
+	margin: 1rem 0 0.5rem 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pedia-tab-btn {
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	padding: 6px 12px;
+	cursor: pointer;
+	font-weight: 500;
+	color: var(--text-muted);
+	border-radius: 0;
+}
+
+.pedia-tab-btn.is-active {
+	color: var(--text-accent);
+	border-bottom: 2px solid var(--interactive-accent);
+	font-weight: 600;
+}
+
+.pedia-footer-textarea {
+	width: 100%;
+	min-height: 250px;
+	font-family: var(--font-monospace);
+	font-size: 13px;
+	line-height: 1.5;
+	resize: vertical;
+	padding: 10px;
+	background: var(--background-primary-alt);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.pedia-footer-preview-wrap {
+	min-height: 250px;
+	max-height: 450px;
+	overflow-y: auto;
+	padding: 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.pedia-footer-presets-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 0.75rem;
+}
+
+.pedia-preset-chip {
+	font-size: 11px;
+	padding: 3px 8px;
+	border-radius: 12px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+}
+
+.pedia-preset-chip:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.pedia-footer-actions-row {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.pedia-preview-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	text-align: center;
+	padding: 2rem 0;
+}
+

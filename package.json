@@ -1,11 +1,12 @@
 {
   "name": "obsidian-hugo-sync-modal",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Obsidian plugin to publish and sync notes to any Hugo static site on GitHub",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
+    "package": "npm run build && node -e \"const fs = require('fs'); const archiver = require('child_process'); archiver.execSync('powershell Compress-Archive -Path main.js,manifest.json,styles.css -DestinationPath obsidian-hugo-sync-modal.zip -Force'); console.log('Package created: obsidian-hugo-sync-modal.zip');\"",
     "lint": "eslint src --ext .ts"
   },
   "repository": {

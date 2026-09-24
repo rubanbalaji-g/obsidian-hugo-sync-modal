@@ -137,10 +137,36 @@ export class NoteCompiler {
 	 */
 	generateHugoToml(): string {
 		const { siteBaseUrl, siteName, siteDescription, siteAuthor,
+			siteFaviconPath, siteLogoType, siteLogoIcon, siteLogoPath,
+			footerFormat, footerContent,
 			baseTheme, accentColor, fontFamily, customFontUrl,
 			obsidianThemeCssUrl, maxContentWidth, showSidebar, showTocByDefault,
 			showCreatedTimestamp, showUpdatedTimestamp, timestampFormat,
 			showNoteIcons, computeBacklinks, generateTagIndex, navLinks } = this.settings;
+
+		const resolvedTitle = (siteName || "").trim() || "Hugo Homepage";
+
+		let faviconVal = "";
+		if (siteFaviconPath && siteFaviconPath.trim()) {
+			const dotIdx = siteFaviconPath.lastIndexOf(".");
+			const ext = dotIdx !== -1 ? siteFaviconPath.substring(dotIdx + 1).toLowerCase() : "png";
+			faviconVal = `/favicon.${ext}`;
+		}
+
+		let logoVal = "";
+		let siteIconVal = "";
+		if (siteLogoType === "image" && siteLogoPath && siteLogoPath.trim()) {
+			const dotIdx = siteLogoPath.lastIndexOf(".");
+			const ext = dotIdx !== -1 ? siteLogoPath.substring(dotIdx + 1).toLowerCase() : "png";
+			logoVal = `/logo.${ext}`;
+		} else if (siteLogoType === "icon" && siteLogoIcon && siteLogoIcon.trim()) {
+			siteIconVal = siteLogoIcon.trim();
+		}
+
+		let footerToml = `  footerFormat = "${footerFormat || "markdown"}"\n  footerContent = ""`;
+		if (footerContent && footerContent.trim()) {
+			footerToml = `  footerFormat = "${footerFormat || "markdown"}"\n  footerContent = '''\n${footerContent}\n'''`;
+		}
 
 		let navLinksToml = "";
 		if (navLinks && navLinks.length > 0) {
@@ -151,7 +177,8 @@ export class NoteCompiler {
 
 		return `baseURL = "${siteBaseUrl.endsWith("/") ? siteBaseUrl : siteBaseUrl + "/"}"
 locale = "en"
-title = "${siteName}"
+title = "${resolvedTitle}"
+ignoreFiles = ['do\\.not\\.display\\.md$', 'tree\\.weight.*$']
 
 [pagination]
   pagerSize = 50
@@ -160,10 +187,13 @@ pluralizeListTitles = false
 [params]
   description = "${siteDescription}"
   author = "${siteAuthor}"
-  siteName = "${siteName}"
+  siteName = "${resolvedTitle}"
   baseTheme = "${baseTheme}"
   accentColor = "${accentColor}"
-  logo = "/logo.svg"
+  favicon = "${faviconVal}"
+  logo = "${logoVal}"
+  siteIcon = "${siteIconVal}"
+${footerToml}
   fontFamily = "${fontFamily}"
   customFontUrl = "${customFontUrl}"
   obsidianThemeCssUrl = "${obsidianThemeCssUrl}"

@@ -1,6 +1,7 @@
-import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, TFile, setIcon } from "obsidian";
 import PediaNotesHugoPlugin from "src/main";
-import { GitHubConnection } from "src/github/GitHubConnection";
+import { ImageSuggestModal } from "src/views/ImageSuggestModal";
+import { FooterEditorModal } from "src/views/FooterEditorModal";
 import { ImageConsolidationModal } from "src/migration/ImageConsolidator";
 
 export class SettingsTab extends PluginSettingTab {
@@ -16,10 +17,35 @@ export class SettingsTab extends PluginSettingTab {
 		containerEl.empty();
 		containerEl.addClass("pedia-settings-tab");
 
-		containerEl.createEl("h2", { text: "🏥 PediaNotes Hugo Publisher Settings" });
+		// ── TOP HEADER ROW WITH DISTINCT MASTER SYNC ─────────────────────
+		const topHeaderRow = containerEl.createDiv({ cls: "pedia-top-header-row" });
+		topHeaderRow.createEl("h2", { text: "Hugo Publisher Settings", cls: "pedia-main-heading" });
+
+		const masterSyncBtn = topHeaderRow.createEl("button", {
+			cls: "mod-cta pedia-master-sync-btn",
+			attr: { "aria-label": "Master Sync: Push all settings, hugo.toml & staged assets to GitHub" },
+		});
+		const masterIconWrap = masterSyncBtn.createSpan({ cls: "pedia-master-icon-wrap" });
+		setIcon(masterIconWrap, "sparkles");
+		masterSyncBtn.createSpan({ text: "Sync All", cls: "pedia-master-btn-text" });
+
+		masterSyncBtn.onclick = async () => {
+			if (masterSyncBtn.hasClass("is-loading")) return;
+			masterSyncBtn.addClass("is-loading");
+			masterSyncBtn.setAttribute("disabled", "true");
+			try {
+				const sha = await this.plugin.publisher.masterSync();
+				new Notice(`✅ Master Sync Complete! All settings & hugo.toml updated (Commit: ${sha.slice(0, 7)})`);
+			} catch (err: any) {
+				new Notice(`❌ Master Sync failed: ${err.message || err}`);
+			} finally {
+				masterSyncBtn.removeClass("is-loading");
+				masterSyncBtn.removeAttribute("disabled");
+			}
+		};
 
 		// ── GITHUB CONFIGURATION ──────────────────────────────────────────
-		containerEl.createEl("h3", { text: "🐙 GitHub Configuration" });
+		containerEl.createEl("h3", { text: "GitHub Configuration", cls: "pedia-section-title" });
 
 		new Setting(containerEl)
 			.setName("GitHub Personal Access Token (PAT)")
@@ -75,7 +101,7 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Test GitHub Connection")
-			.setDesc("Verify your token and repository settings.")
+			.setDesc("Verify your token and repository access")
 			.addButton((btn) =>
 				btn.setButtonText("Test Connection").onClick(async () => {
 					btn.setDisabled(true);
@@ -83,7 +109,7 @@ export class SettingsTab extends PluginSettingTab {
 					try {
 						await this.plugin.publisher.testConnection();
 						new Notice("✅ Connection successful!");
-					} catch (err) {
+					} catch (err: any) {
 						new Notice(`❌ Connection failed: ${err.message || err}`);
 					}
 					btn.setDisabled(false);
@@ -92,7 +118,15 @@ export class SettingsTab extends PluginSettingTab {
 			);
 
 		// ── SITE IDENTITY & DOMAIN ────────────────────────────────────────
-		containerEl.createEl("h3", { text: "🌐 Site Identity & Domain" });
+		this.createSectionHeader(
+			containerEl,
+			"Site Identity & Domain",
+			"Sync Site Identity & Assets to GitHub",
+			async () => {
+				const sha = await this.plugin.publisher.syncSiteIdentity();
+				new Notice(`✅ Site Identity & hugo.toml synced! Commit: ${sha.slice(0, 7)}`);
+			}
+		);
 
 		new Setting(containerEl)
 			.setName("Site Base URL")
@@ -109,17 +143,23 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Open Live Site")
+			.setDesc("Opens your configured live site in your default browser")
 			.addButton((btn) =>
 				btn.setButtonText("Open in Browser").onClick(() => {
-					window.open(this.plugin.settings.siteBaseUrl, '_blank');
+					if (!this.plugin.settings.siteBaseUrl) {
+						new Notice("❌ Site Base URL is not set");
+						return;
+					}
+					window.open(this.plugin.settings.siteBaseUrl, "_blank");
 				})
 			);
 
 		new Setting(containerEl)
 			.setName("Site Title")
-			.setDesc("Website title shown in headers and browser tabs")
+			.setDesc("Website title shown in headers and browser tabs (defaults to 'Hugo Homepage' if left blank)")
 			.addText((text) =>
 				text
+					.setPlaceholder("Hugo Homepage")
 					.setValue(this.plugin.settings.siteName)
 					.onChange(async (val) => {
 						this.plugin.settings.siteName = val;
@@ -127,9 +167,134 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			);
 
+		// ── SITE FAVICON ──────────────────────────────────────────────────
+		const favSetting = new Setting(containerEl)
+			.setName("Site Favicon")
+			.setDesc("Select any image from the vault to use as the site favicon (if blank, no favicon will be used)");
+
+		let favInputEl: HTMLInputElement;
+		favSetting.addText((t) => {
+			favInputEl = t.inputEl;
+			t.setPlaceholder("Select an image from vault...")
+				.setValue(this.plugin.settings.siteFaviconPath || "")
+				.onChange(async (val) => {
+					this.plugin.settings.siteFaviconPath = val.trim();
+					await this.plugin.saveSettings();
+					this.renderFaviconPreview(favPreviewContainer);
+				});
+		});
+
+		favSetting.addButton((b) =>
+			b.setButtonText("Choose from Vault").onClick(() => {
+				new ImageSuggestModal(this.app, async (file: TFile) => {
+					this.plugin.settings.siteFaviconPath = file.path;
+					favInputEl.value = file.path;
+					await this.plugin.saveSettings();
+					this.renderFaviconPreview(favPreviewContainer);
+				}).open();
+			})
+		);
+
+		favSetting.addButton((b) =>
+			b.setButtonText("Clear").onClick(async () => {
+				this.plugin.settings.siteFaviconPath = "";
+				favInputEl.value = "";
+				await this.plugin.saveSettings();
+				this.renderFaviconPreview(favPreviewContainer);
+			})
+		);
+
+		const favPreviewContainer = containerEl.createDiv({ cls: "pedia-thumbnail-preview-row" });
+		this.renderFaviconPreview(favPreviewContainer);
+
+		// ── SITE TITLE ICON / LOGO ────────────────────────────────────────
+		new Setting(containerEl)
+			.setName("Title Icon or Logo Display")
+			.setDesc("Display a Lucide vector icon or custom vault image near the site title (if None, text only)")
+			.addDropdown((dd) =>
+				dd
+					.addOption("none", "None (Text Only)")
+					.addOption("icon", "Lucide Vector Icon")
+					.addOption("image", "Vault Image")
+					.setValue(this.plugin.settings.siteLogoType || "none")
+					.onChange(async (val: "none" | "icon" | "image") => {
+						this.plugin.settings.siteLogoType = val;
+						await this.plugin.saveSettings();
+						this.display();
+					})
+			);
+
+		if (this.plugin.settings.siteLogoType === "icon") {
+			const iconSetting = new Setting(containerEl)
+				.setName("Site Title Icon")
+				.setDesc("Lucide icon name (e.g. stethoscope, book-open, heart-pulse, activity, baby)");
+
+			const iconPreviewEl = iconSetting.controlEl.createDiv({ cls: "pedia-inline-icon-preview" });
+			this.renderLucidePreview(iconPreviewEl, this.plugin.settings.siteLogoIcon || "book-open");
+
+			iconSetting.addText((t) =>
+				t
+					.setPlaceholder("e.g. stethoscope")
+					.setValue(this.plugin.settings.siteLogoIcon || "")
+					.onChange(async (val) => {
+						this.plugin.settings.siteLogoIcon = val.trim().toLowerCase();
+						await this.plugin.saveSettings();
+						this.renderLucidePreview(iconPreviewEl, this.plugin.settings.siteLogoIcon);
+					})
+			);
+
+			iconSetting.addButton((b) =>
+				b.setButtonText("Clear").onClick(async () => {
+					this.plugin.settings.siteLogoIcon = "";
+					await this.plugin.saveSettings();
+					this.renderLucidePreview(iconPreviewEl, "");
+					this.display();
+				})
+			);
+		} else if (this.plugin.settings.siteLogoType === "image") {
+			const logoSetting = new Setting(containerEl)
+				.setName("Site Title Image")
+				.setDesc("Select an image from the vault to display next to the site title");
+
+			let logoInputEl: HTMLInputElement;
+			logoSetting.addText((t) => {
+				logoInputEl = t.inputEl;
+				t.setPlaceholder("Select an image from vault...")
+					.setValue(this.plugin.settings.siteLogoPath || "")
+					.onChange(async (val) => {
+						this.plugin.settings.siteLogoPath = val.trim();
+						await this.plugin.saveSettings();
+						this.renderLogoPreview(logoPreviewContainer);
+					});
+			});
+
+			logoSetting.addButton((b) =>
+				b.setButtonText("Choose from Vault").onClick(() => {
+					new ImageSuggestModal(this.app, async (file: TFile) => {
+						this.plugin.settings.siteLogoPath = file.path;
+						logoInputEl.value = file.path;
+						await this.plugin.saveSettings();
+						this.renderLogoPreview(logoPreviewContainer);
+					}).open();
+				})
+			);
+
+			logoSetting.addButton((b) =>
+				b.setButtonText("Clear").onClick(async () => {
+					this.plugin.settings.siteLogoPath = "";
+					logoInputEl.value = "";
+					await this.plugin.saveSettings();
+					this.renderLogoPreview(logoPreviewContainer);
+				})
+			);
+
+			const logoPreviewContainer = containerEl.createDiv({ cls: "pedia-thumbnail-preview-row" });
+			this.renderLogoPreview(logoPreviewContainer);
+		}
+
 		new Setting(containerEl)
 			.setName("Author")
-			.setDesc("Author name displayed in footer and metadata")
+			.setDesc("Author name displayed in metadata and feeds")
 			.addText((text) =>
 				text
 					.setValue(this.plugin.settings.siteAuthor)
@@ -151,8 +316,61 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			);
 
+		// ── SITE FOOTER ───────────────────────────────────────────────────
+		const footerContent = this.plugin.settings.footerContent || "";
+		const footerFormat = this.plugin.settings.footerFormat || "markdown";
+		const isFooterConfigured = footerContent.trim().length > 0;
+
+		const footerSetting = new Setting(containerEl)
+			.setName("Site Footer")
+			.setDesc(
+				isFooterConfigured
+					? `Custom ${footerFormat.toUpperCase()} footer configured (${footerContent.trim().split("\n").length} lines). If cleared, no footer will be rendered.`
+					: "No custom footer configured. (The entire footer will be omitted from the site)."
+			);
+
+		footerSetting.addButton((btn) =>
+			btn
+				.setButtonText("Edit Footer")
+				.setCta()
+				.onClick(() => {
+					new FooterEditorModal(
+						this.app,
+						this.plugin.settings.footerFormat,
+						this.plugin.settings.footerContent,
+						async (fmt, cnt) => {
+							this.plugin.settings.footerFormat = fmt;
+							this.plugin.settings.footerContent = cnt;
+							await this.plugin.saveSettings();
+							this.display();
+						}
+					).open();
+				})
+		);
+
+		if (isFooterConfigured) {
+			footerSetting.addButton((btn) =>
+				btn.setButtonText("Clear Footer").onClick(async () => {
+					this.plugin.settings.footerContent = "";
+					await this.plugin.saveSettings();
+					this.display();
+				})
+			);
+		}
+
 		// ── HEADER NAVIGATION LINKS ───────────────────────────────────────
-		containerEl.createEl("h3", { text: "🔗 Header Navigation Links" });
+		this.createSectionHeader(
+			containerEl,
+			"Header Navigation Links",
+			"Sync Navigation Links to GitHub",
+			async () => {
+				const sha = await this.plugin.publisher.updateHugoConfig(
+					"chore(site): update navigation links in hugo.toml"
+				);
+				new Notice(`✅ Navigation links synced! Commit: ${sha.slice(0, 7)}`);
+			}
+		);
+
 		containerEl.createEl("p", {
 			text: "Configure links displayed in the desktop title bar and inside the top-right mobile hamburger menu.",
 			cls: "setting-item-description",
@@ -192,37 +410,30 @@ export class SettingsTab extends PluginSettingTab {
 			);
 		});
 
-		new Setting(containerEl)
-			.addButton((b) =>
-				b
-					.setButtonText("➕ Add Navigation Link")
-					.setCta()
-					.onClick(async () => {
-						if (!this.plugin.settings.navLinks) this.plugin.settings.navLinks = [];
-						this.plugin.settings.navLinks.push({ name: "", url: "" });
-						await this.plugin.saveSettings();
-						this.display();
-					})
-			)
-			.addButton((btn) =>
-				btn
-					.setButtonText("🚀 Sync Links to GitHub (hugo.toml)")
-					.onClick(async () => {
-						btn.setDisabled(true);
-						btn.setButtonText("Syncing...");
-						try {
-							const sha = await this.plugin.publisher.updateHugoConfig();
-							new Notice(`✅ Navigation & hugo.toml updated on GitHub! Commit: ${sha.slice(0, 7)}`);
-						} catch (err) {
-							new Notice(`❌ Failed to sync hugo.toml: ${err}`);
-						}
-						btn.setDisabled(false);
-						btn.setButtonText("🚀 Sync Links to GitHub (hugo.toml)");
-					})
-			);
+		new Setting(containerEl).addButton((b) =>
+			b
+				.setButtonText("➕ Add Navigation Link")
+				.setCta()
+				.onClick(async () => {
+					if (!this.plugin.settings.navLinks) this.plugin.settings.navLinks = [];
+					this.plugin.settings.navLinks.push({ name: "", url: "" });
+					await this.plugin.saveSettings();
+					this.display();
+				})
+		);
 
-		// ── THEMES & APPEARANCE ───────────────────────────────────────────
-		containerEl.createEl("h3", { text: "🎨 Theme & Appearance" });
+		// ── THEME & APPEARANCE ───────────────────────────────────────────
+		this.createSectionHeader(
+			containerEl,
+			"Theme & Appearance",
+			"Sync Theme Settings to GitHub",
+			async () => {
+				const sha = await this.plugin.publisher.updateHugoConfig(
+					"chore(site): update theme settings in hugo.toml"
+				);
+				new Notice(`✅ Theme settings synced! Commit: ${sha.slice(0, 7)}`);
+			}
+		);
 
 		new Setting(containerEl)
 			.setName("Base Theme Mode")
@@ -280,26 +491,18 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl)
-			.setName("Sync Theme to Hugo Repository")
-			.setDesc("Pushes your site settings and theme parameters into hugo.toml via GitHub API")
-			.addButton((btn) =>
-				btn.setButtonText("Sync hugo.toml").onClick(async () => {
-					btn.setDisabled(true);
-					btn.setButtonText("Syncing...");
-					try {
-						const sha = await this.plugin.publisher.updateHugoConfig();
-						new Notice(`✅ hugo.toml updated on GitHub! Commit: ${sha.slice(0, 7)}`);
-					} catch (err) {
-						new Notice(`❌ Failed to sync hugo.toml: ${err}`);
-					}
-					btn.setDisabled(false);
-					btn.setButtonText("Sync hugo.toml");
-				})
-			);
-
-		// ── LAYOUT & CONTENT ──────────────────────────────────────────────
-		containerEl.createEl("h3", { text: "📐 Layout Options" });
+		// ── LAYOUT OPTIONS ────────────────────────────────────────────────
+		this.createSectionHeader(
+			containerEl,
+			"Layout Options",
+			"Sync Layout Options to GitHub",
+			async () => {
+				const sha = await this.plugin.publisher.updateHugoConfig(
+					"chore(site): update layout settings in hugo.toml"
+				);
+				new Notice(`✅ Layout options synced! Commit: ${sha.slice(0, 7)}`);
+			}
+		);
 
 		new Setting(containerEl)
 			.setName("Max Content Width (px)")
@@ -339,8 +542,18 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			);
 
-		// ── ADVANCED FEATURES ─────────────────────────────────────────────
-		containerEl.createEl("h3", { text: "⚡ Advanced Features & Frontmatter" });
+		// ── ADVANCED FEATURES & FRONTMATTER ───────────────────────────────
+		this.createSectionHeader(
+			containerEl,
+			"Advanced Features & Frontmatter",
+			"Sync Advanced Features to GitHub",
+			async () => {
+				const sha = await this.plugin.publisher.updateHugoConfig(
+					"chore(site): update advanced settings in hugo.toml"
+				);
+				new Notice(`✅ Advanced features synced! Commit: ${sha.slice(0, 7)}`);
+			}
+		);
 
 		new Setting(containerEl)
 			.setName("Support Lucide Note Icons")
@@ -426,8 +639,8 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			);
 
-		// ── MIGRATION TOOLS ───────────────────────────────────────────────
-		containerEl.createEl("h3", { text: "🛠️ Vault Maintenance Tools" });
+		// ── VAULT MAINTENANCE TOOLS ───────────────────────────────────────
+		containerEl.createEl("h3", { text: "Vault Maintenance Tools", cls: "pedia-section-title" });
 
 		new Setting(containerEl)
 			.setName("Image Folder Consolidation")
@@ -440,5 +653,82 @@ export class SettingsTab extends PluginSettingTab {
 					}).open();
 				})
 			);
+	}
+
+	private createSectionHeader(
+		containerEl: HTMLElement,
+		titleText: string,
+		syncTooltip: string,
+		onSync: () => Promise<void>
+	): HTMLElement {
+		const row = containerEl.createDiv({ cls: "pedia-section-header-row" });
+		row.createEl("h3", { text: titleText, cls: "pedia-section-title" });
+		const syncBtn = row.createEl("button", {
+			cls: "clickable-icon pedia-header-sync-btn",
+			attr: { "aria-label": syncTooltip },
+		});
+		setIcon(syncBtn, "refresh-cw");
+
+		syncBtn.onclick = async () => {
+			if (syncBtn.hasClass("is-loading")) return;
+			syncBtn.addClass("is-loading");
+			syncBtn.setAttribute("disabled", "true");
+			try {
+				await onSync();
+			} catch (err: any) {
+				new Notice(`❌ Sync failed: ${err.message || err}`);
+			} finally {
+				syncBtn.removeClass("is-loading");
+				syncBtn.removeAttribute("disabled");
+			}
+		};
+
+		return row;
+	}
+
+	private renderFaviconPreview(container: HTMLElement): void {
+		container.empty();
+		const path = this.plugin.settings.siteFaviconPath;
+		if (!path) return;
+
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) {
+			const wrapper = container.createDiv({ cls: "pedia-thumb-box" });
+			const img = wrapper.createEl("img", {
+				cls: "pedia-thumb-img",
+				attr: { src: this.app.vault.getResourcePath(file), alt: "Favicon Preview" },
+			});
+			wrapper.createSpan({ text: `Favicon: ${file.name} (${file.extension.toUpperCase()})`, cls: "pedia-thumb-label" });
+		}
+	}
+
+	private renderLogoPreview(container: HTMLElement): void {
+		container.empty();
+		const path = this.plugin.settings.siteLogoPath;
+		if (!path) return;
+
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) {
+			const wrapper = container.createDiv({ cls: "pedia-thumb-box" });
+			wrapper.createEl("img", {
+				cls: "pedia-thumb-img",
+				attr: { src: this.app.vault.getResourcePath(file), alt: "Logo Preview" },
+			});
+			wrapper.createSpan({ text: `Logo: ${file.name} (${file.extension.toUpperCase()})`, cls: "pedia-thumb-label" });
+		}
+	}
+
+	private renderLucidePreview(el: HTMLElement, iconName: string): void {
+		el.empty();
+		if (!iconName) {
+			el.createSpan({ text: "(No icon selected)", cls: "pedia-icon-preview-none" });
+			return;
+		}
+		try {
+			setIcon(el, iconName);
+			el.createSpan({ text: iconName, cls: "pedia-icon-preview-text" });
+		} catch {
+			el.createSpan({ text: `(Unknown: ${iconName})`, cls: "pedia-icon-preview-none" });
+		}
 	}
 }

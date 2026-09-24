@@ -4,6 +4,7 @@ export class FooterEditorModal extends Modal {
 	private format: "markdown" | "html";
 	private content: string;
 	private onSave: (format: "markdown" | "html", content: string) => Promise<void>;
+	private onSaveAndSync?: (format: "markdown" | "html", content: string) => Promise<void>;
 
 	private editorEl!: HTMLTextAreaElement;
 	private previewContainer!: HTMLElement;
@@ -13,29 +14,32 @@ export class FooterEditorModal extends Modal {
 		app: App,
 		currentFormat: "markdown" | "html",
 		currentContent: string,
-		onSave: (format: "markdown" | "html", content: string) => Promise<void>
+		onSave: (format: "markdown" | "html", content: string) => Promise<void>,
+		onSaveAndSync?: (format: "markdown" | "html", content: string) => Promise<void>
 	) {
 		super(app);
 		this.format = currentFormat || "markdown";
 		this.content = currentContent || "";
 		this.onSave = onSave;
+		this.onSaveAndSync = onSaveAndSync;
 	}
 
 	onOpen(): void {
-		const { contentEl } = this;
+		const { contentEl, modalEl } = this;
+		modalEl.addClass("pedia-footer-editor-modal");
+		contentEl.addClass("pedia-footer-editor-content");
 		contentEl.empty();
-		contentEl.addClass("pedia-footer-editor-modal");
 
-		// Modal Title
-		contentEl.createEl("h2", { text: "Edit Site Footer" });
-		contentEl.createEl("p", {
-			text: "Customize the footer displayed on your Hugo site. Select Markdown or raw HTML. If left completely blank, no footer will be rendered on the site.",
+		// Modal Header
+		const headerWrap = contentEl.createDiv({ cls: "pedia-footer-modal-header" });
+		headerWrap.createEl("h2", { text: "Edit Site Footer" });
+		headerWrap.createEl("p", {
+			text: "Customize the footer displayed on your Hugo site. Select Markdown or raw HTML. If left blank, no footer will be rendered on the site.",
 			cls: "setting-item-description",
 		});
 
-		// Format Selector & Starter Presets Row
+		// Format Selector Row
 		const controlsRow = contentEl.createDiv({ cls: "pedia-footer-controls-row" });
-
 		new Setting(controlsRow)
 			.setName("Footer Format")
 			.setDesc("Choose between Markdown formatting or raw HTML")
@@ -88,6 +92,16 @@ export class FooterEditorModal extends Modal {
 			}
 		});
 
+		// Ctrl+Enter / Cmd+Enter to save immediately
+		this.editorEl.addEventListener("keydown", async (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+				e.preventDefault();
+				this.content = this.editorEl.value;
+				await this.onSave(this.format, this.content);
+				this.close();
+			}
+		});
+
 		this.editorEl.addEventListener("input", () => {
 			this.content = this.editorEl.value;
 		});
@@ -101,7 +115,7 @@ export class FooterEditorModal extends Modal {
 			this.isPreviewing = false;
 			editTabBtn.addClass("is-active");
 			previewTabBtn.removeClass("is-active");
-			editorWrap.style.display = "block";
+			editorWrap.style.display = "flex";
 			this.previewContainer.style.display = "none";
 		};
 
@@ -110,7 +124,7 @@ export class FooterEditorModal extends Modal {
 			previewTabBtn.addClass("is-active");
 			editTabBtn.removeClass("is-active");
 			editorWrap.style.display = "none";
-			this.previewContainer.style.display = "block";
+			this.previewContainer.style.display = "flex";
 			this.updatePreview();
 		};
 
@@ -123,7 +137,6 @@ export class FooterEditorModal extends Modal {
 				this.format = fmt;
 				this.content = template;
 				this.editorEl.value = template;
-				// update dropdown
 				const dd = controlsRow.querySelector("select") as HTMLSelectElement;
 				if (dd) dd.value = fmt;
 				if (this.isPreviewing) this.updatePreview();
@@ -153,7 +166,7 @@ export class FooterEditorModal extends Modal {
 		const actionsRow = contentEl.createDiv({ cls: "pedia-footer-actions-row" });
 
 		const clearBtn = actionsRow.createEl("button", {
-			text: "Clear / Remove Footer",
+			text: "Clear Footer",
 			cls: "mod-warning",
 		});
 		clearBtn.onclick = async () => {
@@ -169,13 +182,33 @@ export class FooterEditorModal extends Modal {
 
 		const saveBtn = actionsRow.createEl("button", {
 			text: "Save Footer",
-			cls: "mod-cta",
 		});
 		saveBtn.onclick = async () => {
 			this.content = this.editorEl.value;
 			await this.onSave(this.format, this.content);
 			this.close();
 		};
+
+		if (this.onSaveAndSync) {
+			const saveAndSyncBtn = actionsRow.createEl("button", {
+				text: "Save & Sync to GitHub",
+				cls: "mod-cta",
+			});
+			saveAndSyncBtn.onclick = async () => {
+				this.content = this.editorEl.value;
+				saveAndSyncBtn.setDisabled(true);
+				saveAndSyncBtn.setText("Syncing...");
+				try {
+					if (this.onSaveAndSync) {
+						await this.onSaveAndSync(this.format, this.content);
+					}
+					this.close();
+				} catch (err: any) {
+					saveAndSyncBtn.setDisabled(false);
+					saveAndSyncBtn.setText("Save & Sync to GitHub");
+				}
+			};
+		}
 	}
 
 	private updatePreview(): void {

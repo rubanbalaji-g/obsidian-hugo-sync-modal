@@ -343,6 +343,20 @@ export class SettingsTab extends PluginSettingTab {
 							this.plugin.settings.footerContent = cnt;
 							await this.plugin.saveSettings();
 							this.display();
+							new Notice("✅ Footer saved! Click [🔄] on Site Identity or [✨ Sync All] to push to GitHub.");
+						},
+						async (fmt, cnt) => {
+							this.plugin.settings.footerFormat = fmt;
+							this.plugin.settings.footerContent = cnt;
+							await this.plugin.saveSettings();
+							this.display();
+							try {
+								const sha = await this.plugin.publisher.syncSiteIdentity();
+								new Notice(`✅ Footer saved & synced to GitHub! Commit: ${sha.slice(0, 7)}`);
+							} catch (err: any) {
+								new Notice(`❌ Sync failed: ${err.message || err}`);
+								throw err;
+							}
 						}
 					).open();
 				})

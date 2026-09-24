@@ -102,6 +102,9 @@ export class NoteCompiler {
 		// 3. Convert wikilink images to standard markdown with modifiers preserved
 		body = this.convertWikilinkImages(body);
 
+		// 4. Normalize indented alphabetical or roman sublists to standard ordered lists for Hugo CommonMark
+		body = this.normalizeSublists(body);
+
 		let content: string;
 		if (frontmatterBlock) {
 			content = (frontmatterBlock + body).replace(/\r\n/g, "\n");
@@ -112,6 +115,29 @@ export class NoteCompiler {
 		content = content.replace(/\/img\/user\/00\.Attachments\/(?:system_cards\/)?([^\s"')]+)/g, '/images/$1');
 
 		return { repoPath, content, slug };
+	}
+
+	/**
+	 * Normalizes indented alphabetical (a., b.) and Roman numeral (i., ii.) sublists
+	 * to standard CommonMark ordered lists (1.) outside of code blocks.
+	 * Hugo Goldmark strictly parses 0-9 digits as ordered lists; CSS handles the
+	 * lower-alpha / lower-roman list styling hierarchically.
+	 */
+	private normalizeSublists(content: string): string {
+		const CODE_BLOCK_RE = /(```[\s\S]*?```)|(`[^`\n]+`)/g;
+		const INDENTED_SUBLIST_RE = /^(\s*(?:>\s*)*\s+)(?:[a-zA-Z]|[ivxIVX]{1,4})\.\s+(.*)$/gm;
+
+		const codeBlocks: string[] = [];
+		let sanitized = content.replace(CODE_BLOCK_RE, (match) => {
+			codeBlocks.push(match);
+			return `%%%CODE_BLOCK_PRESERVE_${codeBlocks.length - 1}%%%`;
+		});
+
+		sanitized = sanitized.replace(INDENTED_SUBLIST_RE, "$11. $2");
+
+		sanitized = sanitized.replace(/%%%CODE_BLOCK_PRESERVE_(\d+)%%%/g, (_, idx) => codeBlocks[Number(idx)]);
+
+		return sanitized;
 	}
 
 	/**
